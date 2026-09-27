@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseOpenApi } from "@/lib/openapi";
 import { insertDocument } from "@/lib/db";
 import { handle } from "@/lib/http";
+import { embedDocument } from "@/lib/indexing";
 
 const MAX_DOC_BYTES = 1_000_000;
 
@@ -14,13 +15,16 @@ export async function POST(req: Request) {
     const raw = typeof body.document === "string" ? JSON.parse(body.document) : body.document;
     const parsed = parseOpenApi(raw);
     const { documentId, operations } = await insertDocument(parsed, raw);
+    // Embedding failures (e.g. missing key) must not lose the import; they are reported as warnings.
+    const indexing = await embedDocument(documentId);
     return NextResponse.json({
       documentId,
+      embedded: indexing.embedded,
       title: parsed.title,
       serverUrl: parsed.serverUrl,
       operationCount: operations.length,
       skipped: parsed.skipped,
-      warnings: parsed.warnings,
+      warnings: indexing.warning ? [...parsed.warnings, indexing.warning] : parsed.warnings,
     });
   });
 }

@@ -2,17 +2,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { StoredOperation } from "@/lib/db";
 import type { TryOutcome } from "@/lib/try-request";
+import { postJson } from "@/lib/client";
 import { OperationDoc, TryPanel } from "@/components/TryPanel";
+import { InvestigatePanel } from "@/components/InvestigatePanel";
 
 interface DocRow { id: number; title: string; version: string; server_url: string; operation_count: number; embedded_count: number }
-interface ImportResult { documentId: number; title: string; operationCount: number; skipped: { method: string; path: string; reason: string }[]; warnings: string[] }
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-  return data;
-}
+interface ImportResult { documentId: number; title: string; operationCount: number; embedded: number; skipped: { method: string; path: string; reason: string }[]; warnings: string[] }
 
 export default function Home() {
   const [docText, setDocText] = useState("");
@@ -20,7 +15,7 @@ export default function Home() {
   const [documentId, setDocumentId] = useState<number | null>(null);
   const [importInfo, setImportInfo] = useState<ImportResult | null>(null);
   const [ops, setOps] = useState<StoredOperation[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{ operationId: string; params: Record<string, string>; nonce: number } | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -31,13 +26,17 @@ export default function Home() {
     setDocs(data);
   }, []);
 
-  useEffect(() => { refreshDocs(); }, [refreshDocs]);
+  const refreshOps = useCallback(async (id: number) => {
+    const d = await fetch(`/api/operations?documentId=${id}`).then((r) => r.json());
+    if (Array.isArray(d)) setOps(d);
+    else setError(d.error);
+  }, []);
 
+  useEffect(() => { refreshDocs(); }, [refreshDocs]);
   useEffect(() => {
-    if (!documentId) return;
     setSelected(null);
-    fetch(`/api/operations?documentId=${documentId}`).then((r) => r.json()).then((d) => (Array.isArray(d) ? setOps(d) : setError(d.error)));
-  }, [documentId]);
+    if (documentId) refreshOps(documentId);
+  }, [documentId, refreshOps]);
 
   async function loadDemo() {
     const res = await fetch("/api/demo-spec");
@@ -58,7 +57,23 @@ export default function Home() {
     }
   }
 
-  const current = ops.find((o) => o.op.operationId === selected);
+  async function doEmbed() {
+    if (!documentId) return;
+    setError(""); setBusy(true);
+    try {
+      const r = await postJson<{ embedded: number; warning?: string }>("/api/embed", { documentId });
+      if (r.warning) setError(r.warning);
+      await Promise.all([refreshDocs(), refreshOps(documentId)]);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const choose = (operationId: string, params: Record<string, string> = {}) => setSelected({ operationId, params, nonce: Date.now() });
+  const current = ops.find((o) => o.op.operationId === selected?.operationId);
+  const missingEmbeddings = ops.filter((o) => !o.embedded).length;
 
   return (
     <main>
@@ -71,16 +86,15 @@ export default function Home() {
             <textarea value={docText} onChange={(e) => setDocText(e.target.value)} placeholder="OpenAPI 3.x JSON yapıştır" />
             <div className="row" style={{ marginTop: 8 }}>
               <button className="secondary" onClick={loadDemo}>Demo dokümanı yükle</button>
-              <button onClick={doImport} disabled={!docText.trim() || busy}>{busy ? "İçe aktarılıyor…" : "İçe aktar"}</button>
+              <button onClick={doImport} disabled={!docText.trim() || busy}>{busy ? "Çalışıyor…" : "İçe aktar"}</button>
             </div>
             {importInfo && (
               <div className="small" style={{ marginTop: 8 }}>
-                #{importInfo.documentId} “{importInfo.title}”: {importInfo.operationCount} GET işlemi kaydedildi.
+                #{importInfo.documentId} “{importInfo.title}”: {importInfo.operationCount} GET işlemi kaydedildi, {importInfo.embedded} embedding üretildi.
                 {importInfo.skipped.map((s) => <div key={s.method + s.path} className="muted">Atlandı: {s.method} {s.path} — {s.reason}</div>)}
                 {importInfo.warnings.map((w) => <div key={w} className="error">{w}</div>)}
               </div>
             )}
-            {error && <p className="error">{error}</p>}
             {docs.length > 0 && (
               <div className="row" style={{ marginTop: 10 }}>
                 <label className="small muted">Doküman:</label>
@@ -90,30 +104,37 @@ export default function Home() {
                 </select>
               </div>
             )}
+            {error && <p className="error">{error}</p>}
           </section>
+
+          {documentId && (
+            <InvestigatePanel documentId={documentId} onUse={choose}>
+              {missingEmbeddings > 0 && <button className="secondary" disabled={busy} onClick={doEmbed}>Eksik {missingEmbeddings} embedding&apos;i üret</button>}
+            </InvestigatePanel>
+          )}
+        </div>
+
+        <div>
           {documentId && (
             <section className="panel">
-              <h2>2. Kayıtlı GET işlemleri</h2>
+              <h2>Dokümandaki GET işlemleri</h2>
               <ul className="ops">
                 {ops.map((s) => (
-                  <li key={s.pk} className={s.op.operationId === selected ? "sel" : ""} onClick={() => setSelected(s.op.operationId)}>
-                    <span className="method">GET</span><code>{s.op.path}</code>
+                  <li key={s.pk} className={s.op.operationId === selected?.operationId ? "sel" : ""} onClick={() => choose(s.op.operationId)}>
+                    <span className="method">GET</span><code>{s.op.path}</code> <span className="small muted">{s.op.summary}</span>
                     {s.op.blockers.length > 0 && <span className="badge warn">çalıştırılamaz</span>}
-                    <span className="badge">{s.embedded ? "embedding var" : "embedding yok"}</span>
-                    <div className="small muted">{s.op.summary}</div>
+                    {!s.embedded && <span className="badge">embedding yok</span>}
                   </li>
                 ))}
               </ul>
             </section>
           )}
-        </div>
-        <div>
-          {current && documentId && (
+          {current && documentId && selected && (
             <section className="panel">
-              <h2>3. İncele ve dene</h2>
+              <h2>İncele ve dene</h2>
               <OperationDoc op={current.op} />
               <details className="small"><summary>Embedding için saklanan metin</summary><pre>{current.embedText}</pre></details>
-              <TryPanel key={current.pk} op={current.op} send={(parameters) =>
+              <TryPanel key={`${current.pk}-${selected.nonce}`} op={current.op} initialParams={selected.params} send={(parameters) =>
                 postJson<TryOutcome>("/api/try", { documentId, operationId: current.op.operationId, parameters }).catch((e: Error) => ({ error: e.message }))} />
             </section>
           )}
