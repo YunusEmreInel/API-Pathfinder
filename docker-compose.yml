@@ -1,0 +1,23 @@
+# PostgreSQL 17 with the pgvector extension.
+# Start with:  npm run db:up   (= docker compose --env-file .env.local up -d)
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: pathfinder-db
+    environment:
+      POSTGRES_USER: pathfinder
+      POSTGRES_DB: pathfinder
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.local}
+    ports:
+      - "127.0.0.1:5433:5432" # host 5433 -> container 5432, only reachable from this machine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pathfinder -d pathfinder"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

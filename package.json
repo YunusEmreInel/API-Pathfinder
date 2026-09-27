@@ -8,7 +8,11 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:up": "docker compose --env-file .env.local up -d",
+    "db:down": "docker compose --env-file .env.local down",
+    "db:logs": "docker compose --env-file .env.local logs -f db",
+    "db:psql": "docker exec -it pathfinder-db psql -U pathfinder -d pathfinder"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
