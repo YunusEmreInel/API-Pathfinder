@@ -1,4 +1,6 @@
-# API Pathfinder
+# 🧭 API Pathfinder
+
+**Find the right endpoint. Try it safely.** — *Doğru endpoint'i bul, güvenle dene.*
 
 > Bir OpenAPI 3.x JSON dokümanı yükle, hedefini doğal dille yaz (“Satışta olan ürünleri nasıl listelerim?”).
 > Pathfinder uygun **GET** işlemini semantik aramayla bulur, Gemini ile inceler, parametreleri dokümana göre doğrular
@@ -62,7 +64,7 @@ PostgreSQL 17 + pgvector: Docker Compose (localhost:5433)
 Gerekenler: Node.js (24 LTS ile test edildi), Docker Desktop, bir [Gemini API anahtarı](https://aistudio.google.com/apikey).
 
 ```bash
-git clone <repo-url> api-pathfinder && cd api-pathfinder
+git clone https://github.com/YunusEmreInel/API-Pathfinder.git api-pathfinder && cd api-pathfinder
 npm install
 cp .env.example .env.local
 ```
