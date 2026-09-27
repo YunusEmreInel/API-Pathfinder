@@ -27,7 +27,8 @@ export function AgentTrace({ result }: { result: AgentResult }) {
     <>
       <h3>Araç izi — model önerdi, sunucu çalıştırdı ({result.trace.length} araç adımı, {result.modelTurns} model turu)</h3>
       {result.trace.length === 0 && <div className="box warn">Model hiç araç çağırmadı.</div>}
-      <table>
+      <table className="trace">
+        <colgroup><col className="n" /><col /><col className="who" /><col /></colgroup>
         <thead><tr><th>#</th><th>Modelin istediği çağrı</th><th>Kim çalıştırdı</th><th>Modele geri giden sonuç (özet)</th></tr></thead>
         <tbody>
           {result.trace.map((t) => (

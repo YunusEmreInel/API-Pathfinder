@@ -51,3 +51,6 @@ td, th { border-bottom: 1px solid var(--border); padding: 5px 6px; text-align: l
 .error { color: var(--err); }
 .bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; }
 .bar > span { display: block; height: 100%; background: var(--accent); }
+table.trace { table-layout: fixed; }
+table.trace td, table.trace th { overflow-wrap: anywhere; }
+table.trace col.n { width: 26px; } table.trace col.who { width: 88px; }

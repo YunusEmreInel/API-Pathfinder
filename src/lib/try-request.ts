@@ -2,7 +2,7 @@
 // user-confirmed "Try request" flow (POST /api/try), never from search or the model loop.
 import type { ExtractedOperation, OperationParam } from "./openapi";
 import { buildRequestUrl, toFetchSnippet } from "./request-builder";
-import { safeGet, type SafeFetchResult } from "./safe-fetch";
+import { checkAllowed, defaultOptions, safeGet, type SafeFetchResult } from "./safe-fetch";
 
 export type TryOutcome =
   | { state: "not_executable"; operationId: string; reasons: string[] }
@@ -35,6 +35,8 @@ export async function tryOperation(
   params: Record<string, unknown>,
 ): Promise<TryOutcome> {
   if (op.blockers.length > 0) return { state: "not_executable", operationId: op.operationId, reasons: op.blockers };
+  const allowed = checkAllowed(serverUrl, defaultOptions().allowedOrigins);
+  if (!allowed.ok) return { state: "not_executable", operationId: op.operationId, reasons: [allowed.reason] };
   const built = buildRequestUrl(op, serverUrl, params);
   if (!built.ok) return { state: "needs_input", operationId: op.operationId, missing: built.missing, errors: built.errors };
   const result = await safeGet(built.url);
