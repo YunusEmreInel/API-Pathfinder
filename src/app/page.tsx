@@ -43,6 +43,13 @@ export default function Home() {
     setDocText(JSON.stringify(await res.json(), null, 2));
   }
 
+  async function loadFile(file: File | undefined) {
+    if (!file) return;
+    setError("");
+    if (file.size > 1_000_000) { setError("Dosya 1 MB'tan büyük."); return; }
+    setDocText(await file.text()); // parsed and validated on the server by /api/import
+  }
+
   async function doImport() {
     setError(""); setBusy(true); setImportInfo(null);
     try {
@@ -86,6 +93,11 @@ export default function Home() {
             <textarea value={docText} onChange={(e) => setDocText(e.target.value)} placeholder="OpenAPI 3.x JSON yapıştır" />
             <div className="row" style={{ marginTop: 8 }}>
               <button className="secondary" onClick={loadDemo}>Demo dokümanı yükle</button>
+              <label className="secondary-btn">
+                JSON dosyası seç
+                <input type="file" accept=".json,application/json" hidden
+                  onChange={(e) => { loadFile(e.target.files?.[0]); e.target.value = ""; }} />
+              </label>
               <button onClick={doImport} disabled={!docText.trim() || busy}>{busy ? "Çalışıyor…" : "İçe aktar"}</button>
             </div>
             {importInfo && (

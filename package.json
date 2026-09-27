@@ -12,7 +12,8 @@
     "db:up": "docker compose --env-file .env.local up -d",
     "db:down": "docker compose --env-file .env.local down",
     "db:logs": "docker compose --env-file .env.local logs -f db",
-    "db:psql": "docker exec -it pathfinder-db psql -U pathfinder -d pathfinder"
+    "db:psql": "docker exec -it pathfinder-db psql -U pathfinder -d pathfinder",
+    "db:reset": "docker compose --env-file .env.local down -v && docker compose --env-file .env.local up -d"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

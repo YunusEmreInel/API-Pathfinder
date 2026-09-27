@@ -15,7 +15,7 @@ Bu “her API'ye bağlanan sihirli ürün” değildir. Kapsam bilinçli olarak 
 
 ## Ne yapar
 
-1. OpenAPI JSON'daki GET işlemlerini çıkarır, yerel `$ref`'leri çözer ve PostgreSQL'e kaydeder.
+1. OpenAPI JSON'ı (yapıştırılan metin veya seçilen `.json` dosyası) doğrular, GET işlemlerini çıkarır, yerel `$ref`'leri çözer ve PostgreSQL'e kaydeder.
 2. Her işlemin dokümandaki açıklamasından embedding üretir (`gemini-embedding-2`, 768 boyut) ve bunu pgvector'e yazar.
 3. Hedefe semantik olarak yakın işlemleri puanlarıyla gösterir. Ham arama görünümünde model yoktur.
 4. İki inceleme modu vardır:
@@ -56,7 +56,7 @@ PostgreSQL 17 + pgvector: Docker Compose (localhost:5433)
 
 ## Kurulum
 
-Gerekenler: Node.js 20+ (24 LTS ile test edildi), Docker Desktop, bir [Gemini API anahtarı](https://aistudio.google.com/apikey).
+Gerekenler: Node.js (24 LTS ile test edildi), Docker Desktop, bir [Gemini API anahtarı](https://aistudio.google.com/apikey).
 
 ```bash
 git clone <repo-url> api-pathfinder && cd api-pathfinder
@@ -78,6 +78,7 @@ Faydalı komutlar:
 npm test                                                   # 34 birim testi (vitest)
 npm run typecheck
 npm run db:psql                                            # psql oturumu
+npm run db:reset                                           # veritabanını sil ve boş şemayla yeniden başlat
 node --env-file=.env.local scripts/list-models.mjs         # anahtarının erişebildiği Gemini modelleri
 node --env-file=.env.local scripts/probe-gemini.mjs        # gerçek embedding boyutu + tek bir model çağrısı
 node scripts/screenshot.mjs                                # README ekran görüntülerini arayüzü sürerek yeniden al (Edge gerekir)
@@ -112,16 +113,25 @@ Hepsi yerelde, gerçek Gemini API'siyle ve demo API'siyle çalıştırıldı:
 | 4 | Dokümanda olmayan işlem uydurulmaz | ✅ “Müşteri yorumları” → `no_match`; uydurulan `operationId` → `invalid_suggestion` (test) |
 | 5 | API hatası başarı gibi gösterilmez | ✅ `id=999` → 404, kırmızı kutu, “NOT a successful result” |
 | 6 | Gerçek Gemini araç çağrısı + sunucuda çalışan sonuç görünür | ✅ Arayüzdeki araç izi tablosu ve `investigations.trace` (JSONB) |
+| + | Model araç çağırmazsa dürüst sonuç | ✅ “Merhaba, nasılsın?” → 1 model turu, 0 araç adımı, `no_match` |
 
 ## Güvenlik kararları
 
 - **URL dışarıdan alınmaz.** İstemci ve model yalnızca `operationId` ve parametre değerleri verir. URL, dokümandaki `servers[0].url` + işlemin path'i + doğrulanmış parametrelerle kurulur (tip, enum, uzunluk kontrolü; path değerleri `encodeURIComponent` ile kodlanır; `.`/`..` reddedilir; dokümanda tanımsız parametre reddedilir).
 - **Origin izin listesi** (`ALLOWED_API_ORIGINS`, varsayılan `http://localhost:3000`) tam eşleşme ister. `169.254.169.254` gibi iç adresler listede olmadıkça çağrılamaz; bu durum içe aktarma sırasında uyarı olarak da gösterilir.
 - **Yönlendirme takip edilmez** (`redirect: "manual"`), **timeout** 5 sn, **yanıt boyutu** 64 KB ile sınırlıdır.
-- **Model istek gönderemez.** `try_get_request` modele tanımlanmaz. Model bu aracı adıyla çağırmaya çalışırsa çağrı reddedilir ve izde görünür.
+- **Model istek gönderemez.** `try_get_request` işlevi vardır, ama modele araç olarak tanımlanmaz; yalnızca kullanıcı “İsteği dene” düğmesine bastığında `/api/try` üzerinden çalışır. Model bu aracı adıyla çağırmaya çalışırsa çağrı reddedilir ve izde görünür. (Alternatif tasarım, modelin bu aracı *önerip* uygulamanın onay beklemesi olurdu; burada daha basit ve daha güvenli olan “model hiç göremez” seçildi.)
 - **Güvenilmeyen veri:** hedef, OpenAPI açıklamaları ve API yanıtları modele `<untrusted_data>` içinde veri olarak verilir. Asıl koruma modelin uyması değil, yukarıdaki kod katmanlarıdır.
 - **Sırlar:** `.env.local` git dışındadır. Veritabanı yalnızca `127.0.0.1:5433`'e açılır. Tüm SQL sorguları parametrelidir (`$1, $2…`).
 - Kimlik doğrulama isteyen işlemler (`security`) ve POST/PUT/PATCH/DELETE çalıştırılmaz.
+
+## Sorun giderme
+
+- **PowerShell'de `npm.ps1 cannot be loaded`**: komutu `npm.cmd run dev` şeklinde çalıştır ya da Komut İstemi (cmd) kullan.
+- **`ECONNREFUSED` / “Is the database running?”**: Docker Desktop açık mı? `npm run db:up`, sonra `docker ps` ile `pathfinder-db` konteynerini gör.
+- **`429 … quota exceeded`**: Gemini ücretsiz kotası doldu. Bir süre bekle ya da `.env.local` içinde `GEMINI_MODEL` değerini değiştirip `npm run dev`'i yeniden başlat.
+- **`.env.local` değişikliği etkisiz**: Next.js ortam değişkenlerini yalnızca açılışta okur; sunucuyu yeniden başlat.
+- **Port 3000 dolu**: başka bir `npm run dev` açık kalmış olabilir; o terminali kapat.
 
 ## Bilinen sınırlar
 
