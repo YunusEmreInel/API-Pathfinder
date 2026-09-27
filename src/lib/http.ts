@@ -9,7 +9,10 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
   } catch (e) {
     if (e instanceof OpenApiError) return NextResponse.json({ error: e.message }, { status: 422 });
     if (e instanceof MissingKeyError) return NextResponse.json({ error: e.message, missingKey: true }, { status: 503 });
-    const err = e as Error & { code?: string };
+    const err = e as Error & { code?: string; status?: number };
+    if (err.status === 429) {
+      return NextResponse.json({ error: `Gemini rate limit / quota exceeded. ${err.message.slice(0, 300)}` }, { status: 429 });
+    }
     console.error("[api]", err);
     const hint = err.code === "ECONNREFUSED" ? " Is the database running? Try: npm run db:up" : "";
     return NextResponse.json({ error: `${err.message}${hint}` }, { status: 500 });

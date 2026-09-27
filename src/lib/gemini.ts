@@ -8,7 +8,7 @@ export class MissingKeyError extends Error {
 }
 
 export const config = {
-  model: () => process.env.GEMINI_MODEL || "gemini-3.8-flash",
+  model: () => process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
   embeddingModel: () => process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-2",
   embeddingDim: () => Number(process.env.EMBEDDING_DIM || 768),
 };
