@@ -11,6 +11,9 @@ only after explicit user confirmation.*
 
 ![Agent incelemesi, kod doğrulaması ve onaylı gerçek istek](docs/screenshot-agent.png)
 
+📘 Yazılımla uğraşmayanlar için de anlaşılır, 27 sayfalık Türkçe rehber: [docs/API-Pathfinder-Rehber.pdf](docs/API-Pathfinder-Rehber.pdf)
+(kavramlar, mimari, veritabanı ve Docker, yapay zekâ kısmı, kurulum ve ekran rehberi).
+
 Bu “her API'ye bağlanan sihirli ürün” değildir. Kapsam bilinçli olarak küçüktür (bkz. [Bilinen sınırlar](#bilinen-sınırlar)).
 
 ## Ne yapar
@@ -82,6 +85,7 @@ npm run db:reset                                           # veritabanını sil 
 node --env-file=.env.local scripts/list-models.mjs         # anahtarının erişebildiği Gemini modelleri
 node --env-file=.env.local scripts/probe-gemini.mjs        # gerçek embedding boyutu + tek bir model çağrısı
 node scripts/screenshot.mjs                                # README ekran görüntülerini arayüzü sürerek yeniden al (Edge gerekir)
+node scripts/render-guide.mjs                              # docs/guide/guide.html → docs/API-Pathfinder-Rehber.pdf (Edge gerekir)
 ```
 
 Anahtar yoksa içe aktarma ve manuel deneme yine çalışır. Arama ve inceleme ise sahte cevap üretmek yerine açık bir `503` hatası döndürür.

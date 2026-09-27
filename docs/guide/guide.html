@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>API Pathfinder — Herkes İçin Proje Rehberi</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  :root { --ink:#1d232b; --muted:#5d6773; --accent:#2458d6; --line:#d9dee5; --soft:#f3f5f8;
+          --ok:#137a3a; --okbg:#e7f4ec; --err:#b42318; --errbg:#fdeceb; --warn:#8a5a00; --warnbg:#fff4d9; --ai:#6b3fb8; --aibg:#f2ecfb; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 20pt; margin: 0 0 6px; color: var(--accent); page-break-after: avoid; }
+  h2 { font-size: 13pt; margin: 14px 0 5px; page-break-after: avoid; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+  h3 { font-size: 11.5pt; margin: 14px 0 4px; page-break-after: avoid; }
+  p { margin: 5px 0 8px; }
+  ul, ol { margin: 4px 0 8px; padding-left: 22px; }
+  li { margin: 2px 0; }
+  code, .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9.4pt; background: var(--soft); padding: 0 3px; border-radius: 3px; }
+  pre { font-family: Consolas, monospace; font-size: 9pt; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; white-space: pre-wrap; margin: 6px 0 10px; page-break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 5px 0 10px; font-size: 9.2pt; page-break-inside: avoid; }
+  table.long { page-break-inside: auto; }
+  th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); }
+  tr { page-break-inside: avoid; }
+  .chapter { page-break-before: always; }
+  .chapter-num { color: var(--muted); font-size: 10pt; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+  .box { border-radius: 7px; padding: 6px 11px; margin: 6px 0 10px; border-left: 4px solid; page-break-inside: avoid; }
+  .box .t { font-weight: 700; font-size: 9pt; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 3px; }
+  .analogy { background: #eef4ff; border-color: var(--accent); }
+  .analogy .t { color: var(--accent); }
+  .here { background: var(--okbg); border-color: var(--ok); }
+  .here .t { color: var(--ok); }
+  .note { background: var(--warnbg); border-color: var(--warn); }
+  .note .t { color: var(--warn); }
+  .ai { background: var(--aibg); border-color: var(--ai); }
+  .ai .t { color: var(--ai); }
+  figure { margin: 8px 0 14px; text-align: center; page-break-inside: avoid; }
+  figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+  figcaption { font-size: 9pt; color: var(--muted); margin-top: 4px; }
+  .flow { display: flex; align-items: stretch; gap: 0; margin: 10px 0 14px; page-break-inside: avoid; flex-wrap: nowrap; }
+  .flow .n { flex: 1; border: 1.5px solid var(--accent); border-radius: 7px; padding: 6px 7px; font-size: 9pt; background: #f7f9ff; text-align: center; }
+  .flow .n b { display: block; font-size: 9.5pt; margin-bottom: 2px; }
+  .flow .a { align-self: center; padding: 0 4px; color: var(--accent); font-weight: 700; }
+  .stack { display: grid; gap: 6px; margin: 10px 0 14px; page-break-inside: avoid; }
+  .layer { border: 1.5px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+  .layer b { color: var(--accent); }
+  .url { font-family: Consolas, monospace; font-size: 11pt; text-align: center; margin: 10px 0 4px; }
+  .url span { padding: 2px 0; border-radius: 2px; }
+  .u1 { background: #e3ecff; } .u2 { background: #e7f4ec; } .u3 { background: #fff1d6; } .u4 { background: #f2ecfb; } .u5 { background: #fdeceb; }
+  .cover { height: 245mm; display: flex; flex-direction: column; justify-content: center; }
+  .cover h1 { font-size: 34pt; }
+  .cover .sub { font-size: 14pt; color: var(--muted); margin-bottom: 26px; }
+  .cover .meta { font-size: 10pt; color: var(--muted); margin-top: 30px; }
+  .toc ol { font-size: 11pt; line-height: 1.9; }
+  .step { display: grid; grid-template-columns: 34px 1fr; gap: 8px; margin: 8px 0 12px; page-break-inside: avoid; }
+  .step .num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .step h3 { margin-top: 3px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .small { font-size: 9pt; color: var(--muted); }
+  .kbd { font-family: Consolas, monospace; font-size: 9pt; border: 1px solid #b8c0cc; border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: #fff; }
+  .btn { display: inline-block; font-size: 9pt; border-radius: 5px; padding: 0 6px; background: var(--accent); color: #fff; }
+  .btn.o { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ========== KAPAK ========== -->
+<section class="cover">
+  <div class="chapter-num">Proje rehberi</div>
+  <h1>API Pathfinder</h1>
+  <div class="sub">Bir API dokümanında doğru “kapıyı” bulan, deneyen ve açıklayan küçük bir yapay zekâ destekli araç — yazılımla uğraşmayanlar için de anlaşılır anlatım</div>
+  <div class="box analogy"><div class="t">Tek cümlede</div>
+    Bir yazılımın “kullanım kılavuzunu” (OpenAPI dokümanı) yüklüyorsun, ne istediğini Türkçe yazıyorsun
+    (“Satışta olan ürünleri listele”); program kılavuzda buna uyan işlemi buluyor, neden seçtiğini açıklıyor
+    ve sen onay verirsen o işlemi gerçekten deneyip sonucunu gösteriyor.</div>
+  <div class="meta">
+    Teknolojiler: Next.js · React · TypeScript · PostgreSQL · pgvector · Docker · Google Gemini<br>
+    Belgenin sonunda: projeyi adım adım çalıştırma ve ekrandaki her seçeneğin ne işe yaradığı
+  </div>
+</section>
+
+<!-- ========== İÇİNDEKİLER ========== -->
+<section class="chapter toc">
+  <h1>İçindekiler</h1>
+  <ol>
+    <li>Proje ne yapıyor, neden var?</li>
+    <li>Temel kavramlar: yazılım, sunucu, tarayıcı</li>
+    <li>API nedir?</li>
+    <li>HTTP: programların konuşma dili (URL, GET/POST…, durum kodları, JSON)</li>
+    <li>OpenAPI: bir API'nin kullanım kılavuzu</li>
+    <li>Projenin parçaları ve nerede çalıştıkları</li>
+    <li>Docker: neden ve nasıl?</li>
+    <li>Veritabanı: var mı, nerede, içinde ne var?</li>
+    <li>Yapay zekâ kısmı: embedding, pgvector, RAG, araç çağırma (agent)</li>
+    <li>Bir isteğin baştan sona yolculuğu</li>
+    <li>Güvenlik: sistem kendini nasıl koruyor?</li>
+    <li>Projenin bilinçli sınırları</li>
+    <li>Sözlük</li>
+    <li>Projeyi ayağa kaldırma (adım adım)</li>
+    <li>Ekran rehberi: her düğme ne işe yarar, bize ne sunar?</li>
+    <li>Deneme senaryoları ve sorun giderme</li>
+  </ol>
+</section>
+
+<!-- ========== 1 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 1</div>
+  <h1>Proje ne yapıyor, neden var?</h1>
+  <p>Bugün hemen her uygulama başka uygulamalarla konuşur: bir alışveriş sitesi ödeme sistemine, bir hava durumu uygulaması
+  meteoroloji servisine bağlanır. Bu bağlantı noktalarına <b>API</b> denir ve her API'nin, hangi işlemleri sunduğunu anlatan
+  bir <b>dokümanı</b> vardır. Bu dokümanlar çoğu zaman uzun, İngilizce ve teknik olur.</p>
+  <p>API Pathfinder'ın çözdüğü problem şu: <i>“Bu API ile şunu yapmak istiyorum — hangi işlemi, hangi ayarlarla kullanmalıyım?”</i>
+  sorusuna hızlı ve <b>doğrulanmış</b> bir cevap vermek.</p>
+
+  <h3>Kullanıcının gözünden 4 adım</h3>
+  <div class="flow">
+    <div class="n"><b>1. Yükle</b>API'nin kullanım kılavuzunu (OpenAPI JSON) yükle</div><div class="a">→</div>
+    <div class="n"><b>2. Sor</b>Ne istediğini Türkçe yaz</div><div class="a">→</div>
+    <div class="n"><b>3. İncele</b>Program uygun işlemi bulur ve nedenini açıklar</div><div class="a">→</div>
+    <div class="n"><b>4. Dene</b>Onay verirsen gerçek isteği gönderir, sonucu gösterir</div>
+  </div>
+
+  <h3>Neyi farklı yapıyor?</h3>
+  <ul>
+    <li><b>Uydurmaz.</b> Dokümanda olmayan bir işlemi önermez. Bulamazsa “bulamadım” der.</li>
+    <li><b>Bilgi kaynaklarını ayırır.</b> Ekranda üç renk vardır: <span style="color:var(--accent)">mavi</span> = dokümanda yazan gerçek,
+      <span style="color:var(--ai)">mor</span> = yapay zekânın tahmini, <span style="color:var(--ok)">yeşil</span>/<span style="color:var(--err)">kırmızı</span> = gerçekten denendiğinde ne olduğu.</li>
+    <li><b>Kendiliğinden hiçbir şey göndermez.</b> Gerçek istek yalnızca kullanıcı “İsteği dene” düğmesine bastığında gider.</li>
+    <li><b>Güvenlik sınırları vardır.</b> Yalnızca izin verilen adreslere, yalnızca “okuma” türü isteklerle gidilir.</li>
+  </ul>
+
+  <div class="box here"><div class="t">Bu projede</div>
+  Proje içinde küçük bir <b>örnek mağaza</b> da var: 20 ürün ve 4 kategoriden oluşan sahte ama gerçekten çalışan bir API. Böylece internete çıkmadan,
+  her seferinde aynı sonuçlarla deneme yapılabiliyor. Bu mağazanın kullanım kılavuzu <code>demo/store-openapi.json</code> dosyasında.</div>
+</section>
+
+<!-- ========== 2 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 2</div>
+  <h1>Temel kavramlar: yazılım, sunucu, tarayıcı</h1>
+
+  <h3>İstemci (client) ve sunucu (server)</h3>
+  <p>İnternetteki hemen her şey iki rol üzerine kuruludur: <b>istemci</b> bir şey ister, <b>sunucu</b> cevap verir.
+  Tarayıcın (Chrome, Edge) bir istemcidir; bir web sitesini açtığında, o sitenin sunucusuna “bana bu sayfayı ver” der.</p>
+  <div class="box analogy"><div class="t">Benzetme: restoran</div>
+    Müşteri (istemci) garsona siparişini verir. Mutfak (sunucu) yemeği hazırlar, garson geri getirir. Müşteri mutfağa girmez;
+    sadece menüdeki şeyleri, belirli bir şekilde isteyebilir.</div>
+
+  <h3>“localhost” ve port</h3>
+  <p><b>localhost</b>, “bu bilgisayarın kendisi” demektir. Proje senin bilgisayarında çalıştığı için adresi <code>http://localhost:3000</code>'dir.
+  <b>Port</b> (3000, 5433 gibi sayılar), aynı bilgisayardaki farklı programların <i>kapı numarası</i>dır: bir apartmanın adresi aynıdır,
+  daire numaraları farklıdır.</p>
+  <table>
+    <tr><th>Port</th><th>Kim dinliyor?</th></tr>
+    <tr><td><code>3000</code></td><td>API Pathfinder uygulaması (arayüz + sunucu + örnek mağaza API'si)</td></tr>
+    <tr><td><code>5433</code></td><td>Docker içindeki PostgreSQL veritabanı (bilgisayarında zaten 5432'de başka bir veritabanı olduğu için 5433 seçildi)</td></tr>
+  </table>
+
+  <h3>Kullanılan yazılım dilleri ve araçlar</h3>
+  <table>
+    <tr><th>Ad</th><th>Ne olduğu (basitçe)</th><th>Bu projede görevi</th></tr>
+    <tr><td><b>TypeScript</b></td><td>Bir programlama dili. JavaScript'in, hataları erken yakalayan “tipli” hali.</td><td>Projenin neredeyse tüm kodu bu dille yazıldı.</td></tr>
+    <tr><td><b>Node.js</b></td><td>JavaScript/TypeScript kodunu tarayıcı dışında, bilgisayarda çalıştıran motor.</td><td>Sunucu tarafını çalıştırır. <code>npm</code> komutu da onunla gelir.</td></tr>
+    <tr><td><b>npm</b></td><td>Node'un paket yöneticisi: başkalarının yazdığı hazır kod parçalarını indirir.</td><td><code>npm install</code>, <code>npm run dev</code> gibi komutlar.</td></tr>
+    <tr><td><b>React</b></td><td>Ekrandaki düğme, kutu, tablo gibi parçaları kurmaya yarayan kütüphane.</td><td>Arayüzün tamamı.</td></tr>
+    <tr><td><b>Next.js</b></td><td>React üzerine kurulu bir “çatı” (framework). Hem web sayfasını hem sunucu kodunu tek projede toplar.</td><td>Sayfa + <code>/api/…</code> uç noktaları + örnek mağaza.</td></tr>
+    <tr><td><b>PostgreSQL</b></td><td>Çok yaygın, ücretsiz bir veritabanı sistemi.</td><td>İçe aktarılan dokümanları, denemeleri, incelemeleri saklar.</td></tr>
+    <tr><td><b>pgvector</b></td><td>PostgreSQL'e “anlam benzerliği ile arama” yeteneği ekleyen eklenti.</td><td>Hedefine en yakın işlemleri bulur.</td></tr>
+    <tr><td><b>Docker</b></td><td>Programları hazır, taşınabilir kutular (konteyner) içinde çalıştırma aracı.</td><td>Veritabanını tek komutla kurup çalıştırır.</td></tr>
+    <tr><td><b>Google Gemini</b></td><td>Google'ın yapay zekâ modeli ailesi; internet üzerinden (API ile) kullanılır.</td><td>Metni sayılara çevirir (embedding), öneri ve açıklama üretir.</td></tr>
+    <tr><td><b>Git / GitHub</b></td><td>Git kodun geçmişini (her değişikliği) kaydeder; GitHub bu geçmişi internette saklayıp paylaşır.</td><td>Projenin geçmişi 7 kayıt noktası (commit) olarak saklı.</td></tr>
+  </table>
+</section>
+
+<!-- ========== 3 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 3</div>
+  <h1>API nedir?</h1>
+  <p><b>API</b> (Application Programming Interface — Uygulama Programlama Arayüzü), bir programın <i>başka programlar</i> tarafından
+  kullanılmak üzere açtığı kapıdır. İnsanlar bir siteyi fareyle kullanır; programlar ise API ile, belirli kurallara göre yazılmış
+  isteklerle kullanır.</p>
+  <div class="box analogy"><div class="t">Benzetme: banka veznesi</div>
+    Bankanın kasasına kimse doğrudan giremez. Vezneye gidersin; “bakiyemi göster” veya “para yatır” gibi <b>tanımlı işlemlerden</b> birini,
+    <b>istenen bilgilerle</b> (hesap no gibi) istersin; vezne sana bir <b>sonuç</b> verir. API bu veznedir.</div>
+
+  <h3>“API sunmak” ile “API kullanmak” arasındaki fark</h3>
+  <table>
+    <tr><th></th><th>API sunmak</th><th>API kullanmak</th></tr>
+    <tr><td>Rol</td><td>Sunucu / mutfak / vezne</td><td>İstemci / müşteri</td></tr>
+    <tr><td>Ne yapar?</td><td>Gelen isteği karşılar, cevap üretir</td><td>Başka bir sunucuya istek gönderir, cevabı işler</td></tr>
+    <tr><td>Bu projede</td><td><b>Örnek mağaza</b>: <code>/demo-api/products</code> gibi adresler gelen isteklere ürün listesi döner</td><td><b>Pathfinder</b>: “İsteği dene” düğmesine basınca mağaza API'sine istek gönderir</td></tr>
+  </table>
+  <div class="box here"><div class="t">İlginç nokta</div>
+    Bu projede iki rol aynı uygulamanın içinde. Pathfinder, kendi içindeki örnek mağazaya sanki dünyanın öbür ucundaki bir API'ymiş gibi davranıyor:
+    aynı güvenlik kurallarıyla, aynı yoldan istek gönderiyor. Böylece gerçek bir API'ye geçmek kolay oluyor.</div>
+</section>
+
+<!-- ========== 4 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 4</div>
+  <h1>HTTP: programların konuşma dili</h1>
+  <p><b>HTTP</b>, tarayıcıların ve programların sunucularla konuştuğu dildir. Her konuşma bir <b>istek</b> (request) ve bir
+  <b>yanıttan</b> (response) oluşur. Bir isteğin en önemli parçaları: <b>yöntem</b> (ne yapmak istiyorsun), <b>URL</b> (nereye, neyle),
+  yanıtın en önemli parçaları: <b>durum kodu</b> (ne oldu) ve <b>gövde</b> (gelen veri).</p>
+
+  <h3>4.1 URL'nin parçaları</h3>
+  <div class="url">
+    <span class="u1">http://</span><span class="u2">localhost:3000</span><span class="u3">/demo-api</span><span class="u4">/products</span><span class="u5">?status=on_sale</span>
+  </div>
+  <table>
+    <tr><th>Parça</th><th>Örnek</th><th>Anlamı</th></tr>
+    <tr><td class="u1">Şema</td><td><code>http://</code></td><td>Hangi dil/protokol kullanılacak (https = şifreli http)</td></tr>
+    <tr><td class="u2">Sunucu + port</td><td><code>localhost:3000</code></td><td>Hangi bilgisayar, hangi kapı</td></tr>
+    <tr><td class="u3">Taban yol</td><td><code>/demo-api</code></td><td>Bu API'nin sunucudaki “klasörü”</td></tr>
+    <tr><td class="u4">Yol (path)</td><td><code>/products</code></td><td>Hangi kaynak: ürünler</td></tr>
+    <tr><td class="u5">Sorgu (query)</td><td><code>?status=on_sale</code></td><td>Ek filtre: “yalnızca satıştakiler”. <code>?</code>'den sonra <code>ad=değer</code> çiftleri gelir, birden fazlaysa <code>&amp;</code> ile ayrılır.</td></tr>
+  </table>
+  <p><b>Path parametresi</b> ise yolun <i>içine</i> yerleşen değerdir: <code>/products/{id}</code> kalıbındaki <code>{id}</code> yerine 17 yazılınca
+  <code>/products/17</code> olur (“17 numaralı ürün”). <b>Query parametresi</b> ise yolun <i>sonuna</i>, <code>?</code>'den sonra eklenir.</p>
+
+  <h3>4.2 HTTP yöntemleri: GET, POST, PUT, PATCH, DELETE</h3>
+  <p>Yöntem, isteğin <b>niyetini</b> söyler. En yaygın beşi:</p>
+  <table>
+    <tr><th>Yöntem</th><th>Niyet</th><th>Günlük hayattan</th><th>Veriyi değiştirir mi?</th><th>Bu projede</th></tr>
+    <tr><td><b>GET</b></td><td>Oku / getir</td><td>Kütüphaneden kitap kataloğuna bakmak</td><td>Hayır</td><td><b>Tek desteklenen yöntem</b></td></tr>
+    <tr><td><b>POST</b></td><td>Yeni bir şey oluştur</td><td>Yeni üyelik formu doldurmak</td><td>Evet</td><td>Gönderilmez (atlanır)</td></tr>
+    <tr><td><b>PUT</b></td><td>Bir şeyi tamamen değiştir</td><td>Adres kaydını baştan yazmak</td><td>Evet</td><td>Gönderilmez</td></tr>
+    <tr><td><b>PATCH</b></td><td>Bir şeyin bir kısmını değiştir</td><td>Sadece telefon numarasını güncellemek</td><td>Evet</td><td>Gönderilmez</td></tr>
+    <tr><td><b>DELETE</b></td><td>Sil</td><td>Üyeliği iptal etmek</td><td>Evet</td><td>Gönderilmez</td></tr>
+  </table>
+  <div class="box note"><div class="t">“GET / SET” hakkında</div>
+    HTTP'de <b>“SET” diye bir yöntem yoktur</b>. Programlamada “get/set” (oku/yaz) ikilisi yaygın olduğu için karışabilir; HTTP'de “yazma” işi
+    <b>POST, PUT, PATCH</b> ile, silme işi <b>DELETE</b> ile yapılır. Projenin yalnızca <b>GET</b> kullanmasının nedeni güvenliktir:
+    GET sadece okur; yanlışlıkla bir şey silmek, sipariş vermek veya para göndermek mümkün olmaz. Örnek dokümandaki <code>POST /products</code>
+    işlemi bu yüzden içe aktarmada “Atlandı” olarak listelenir.</div>
+
+  <h3>4.3 Durum kodları: “ne oldu?”</h3>
+  <p>Her yanıt 3 haneli bir sayıyla başlar. İlk hane durumun türünü söyler: <b>2xx</b> başarılı, <b>3xx</b> başka yere yönlendirme,
+  <b>4xx</b> isteyen tarafın hatası, <b>5xx</b> sunucunun hatası.</p>
+  <table>
+    <tr><th>Kod</th><th>Anlamı</th><th>Bu projede nerede görülür?</th></tr>
+    <tr><td><b style="color:var(--ok)">200 OK</b></td><td>İstek başarılı, veri geldi</td><td>Satıştaki ürünler, 17 numaralı ürün</td></tr>
+    <tr><td>302</td><td>“Başka adrese git” (yönlendirme)</td><td>Pathfinder yönlendirmeleri <b>takip etmez</b> (güvenlik)</td></tr>
+    <tr><td><b style="color:var(--err)">400 Bad Request</b></td><td>İstek hatalı (ör. geçersiz değer)</td><td>Mağazaya <code>status=cheap</code> gibi tanımsız bir değer gönderilirse</td></tr>
+    <tr><td>401 / 403</td><td>Kimlik doğrulama gerekli / izin yok</td><td>Anahtar isteyen API'ler — bu yüzden <code>/orders</code> çalıştırılmaz</td></tr>
+    <tr><td><b style="color:var(--err)">404 Not Found</b></td><td>Böyle bir şey yok</td><td>999 numaralı ürün</td></tr>
+    <tr><td>429 Too Many Requests</td><td>Çok fazla istek / kota doldu</td><td>Gemini ücretsiz kotası dolarsa</td></tr>
+    <tr><td>500 / 503</td><td>Sunucu hatası / servis kullanılamıyor</td><td>Veritabanı kapalıysa ya da Gemini anahtarı yoksa</td></tr>
+  </table>
+  <div class="box note"><div class="t">Önemli ayrım</div>
+    <b>200 almak, “istediğim oldu” demek değildir.</b> 200 yalnızca “sunucu isteği kabul etti ve cevap verdi” demektir. Gelen veri gerçekten
+    senin hedefine uyuyor mu, ona bakmak gerekir. Pathfinder bu yüzden 200'ün altına “isteğin çalıştığını gösterir, hedefini karşıladığını değil”
+    notunu yazar.</div>
+
+  <h3>4.4 JSON: verinin biçimi</h3>
+  <p><b>JSON</b>, programların veri alışverişinde kullandığı, insanların da okuyabildiği bir metin biçimidir. Süslü parantez <code>{ }</code> bir
+  “nesne”yi (etiketli bilgiler), köşeli parantez <code>[ ]</code> bir “liste”yi gösterir. Örnek mağazadan gelen gerçek yanıt:</p>
+<pre>{
+  "id": 17,
+  "name": "Wireless Mouse",     ← ürünün adı
+  "categoryId": 4,              ← 4 = Electronics kategorisi
+  "price": 127.5,
+  "status": "on_sale"           ← satışta / indirimde
+}</pre>
+</section>
+
+<!-- ========== 5 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 5</div>
+  <h1>OpenAPI: bir API'nin kullanım kılavuzu</h1>
+  <p><b>OpenAPI</b>, bir API'nin hangi işlemleri sunduğunu, her işlemin hangi bilgileri istediğini ve ne döndürdüğünü anlatan
+  <b>standart bir doküman biçimidir</b>. Bu doküman JSON (ya da YAML) ile yazılır. Bir restoranın menüsü gibidir: hangi yemekler var,
+  hangi seçenekleri var, porsiyon nasıl gelir.</p>
+
+  <h3>Örnek mağaza dokümanında ne var?</h3>
+  <table>
+    <tr><th>İşlem (operationId)</th><th>İstek</th><th>Ne yapar</th><th>Parametre</th><th>Pathfinder'da durumu</th></tr>
+    <tr><td><code>listProducts</code></td><td>GET /products</td><td>Ürünleri listeler</td><td><code>status</code> (isteğe bağlı): on_sale / in_stock / out_of_stock</td><td>Çalıştırılabilir</td></tr>
+    <tr><td><code>getProductById</code></td><td>GET /products/{id}</td><td>Tek bir ürünü getirir</td><td><code>id</code> (zorunlu, tam sayı)</td><td>Çalıştırılabilir</td></tr>
+    <tr><td><code>listCategories</code></td><td>GET /categories</td><td>Kategorileri listeler</td><td>—</td><td>Çalıştırılabilir</td></tr>
+    <tr><td><code>listOrders</code></td><td>GET /orders</td><td>Siparişleri listeler</td><td>API anahtarı ister</td><td><b>Çalıştırılamaz</b> (kimlik doğrulama gerekir)</td></tr>
+    <tr><td><code>createProduct</code></td><td>POST /products</td><td>Ürün oluşturur</td><td>—</td><td><b>Atlanır</b> (yalnızca GET)</td></tr>
+  </table>
+
+  <h3>Dokümandaki bazı terimler</h3>
+  <ul>
+    <li><b>operationId</b>: işlemin benzersiz adı (ör. <code>listProducts</code>). Pathfinder her şeyi bu adla takip eder.</li>
+    <li><b>servers</b>: API'nin hangi adreste çalıştığı. Örnekte <code>http://localhost:3000/demo-api</code>.</li>
+    <li><b>parameters</b>: işlemin istediği bilgiler; <code>in: "query"</code> veya <code>in: "path"</code> nerede gönderileceğini söyler,
+      <code>required</code> zorunlu olup olmadığını, <code>schema</code> türünü (sayı, metin…), <code>enum</code> izin verilen değer listesini.</li>
+    <li><b>$ref</b>: “bu bilgiyi dokümanın şu başka yerinden al” bağlantısı. Tekrarı önler. Pathfinder yalnızca dokümanın <i>kendi içindeki</i>
+      bağlantıları (<code>#/…</code> ile başlayanlar) çözer; internetteki başka dosyalara giden bağlantıları <b>indirmez</b>, açık bir hata verir.</li>
+    <li><b>security</b>: işlemin kimlik doğrulama (anahtar, şifre) gerektirdiğini söyler. Böyle işlemler Pathfinder'da “çalıştırılamaz” olur.</li>
+  </ul>
+  <div class="box here"><div class="t">Neden kılavuza bu kadar güveniyoruz?</div>
+    Pathfinder'ın “uydurmama” garantisi buradan gelir: istek adresi <b>asla</b> kullanıcıdan veya yapay zekâdan alınmaz; her zaman bu kılavuzdaki
+    sunucu adresi + işlemin yolu + kılavuza göre kontrol edilmiş parametrelerle program tarafından oluşturulur.</div>
+</section>
+
+<!-- ========== 6 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 6</div>
+  <h1>Projenin parçaları ve nerede çalıştıkları</h1>
+  <p>Proje, birbirleriyle konuşan birkaç parçadan oluşur. Hepsi senin bilgisayarında çalışır; yalnızca yapay zekâ (Gemini) Google'ın
+  sunucularındadır.</p>
+
+  <div class="stack">
+    <div class="layer"><b>① Arayüz (tarayıcıda)</b> — Gördüğün sayfa. Düğmelere bastığında aşağıdaki sunucuya istek gönderir. <span class="small">Dosya: src/app/page.tsx, src/components/</span></div>
+    <div class="layer"><b>② Uygulama sunucusu (Next.js, port 3000)</b> — Asıl işi yapan beyin. Dokümanı ayrıştırır, veritabanına yazar, yapay zekâyla konuşur, güvenlik kontrollerini yapar,
+      onaylı isteği gönderir. Arayüzün kullandığı kendi uç noktaları vardır: <code>/api/import</code>, <code>/api/search</code>, <code>/api/investigate</code>, <code>/api/try</code>…
+      <span class="small">Dosyalar: src/app/api/, src/lib/</span></div>
+    <div class="layer"><b>③ Örnek mağaza API'si (aynı sunucuda, <code>/demo-api/…</code>)</b> — Denemelerin hedefi. Gerçek HTTP yanıtları döndürür (200, 400, 404).
+      <span class="small">Dosyalar: src/app/demo-api/, src/lib/demo-store-data.ts</span></div>
+    <div class="layer"><b>④ Veritabanı (PostgreSQL + pgvector, Docker içinde, port 5433)</b> — Kalıcı hafıza: dokümanlar, işlemler, anlam vektörleri, deneme ve inceleme kayıtları.
+      <span class="small">Dosyalar: docker-compose.yml, db/init.sql</span></div>
+    <div class="layer"><b>⑤ Google Gemini (internet üzerinden)</b> — İki iş yapar: metni anlam vektörüne çevirmek (embedding) ve öneri/açıklama üretmek.
+      Kullanmak için <b>API anahtarı</b> gerekir; anahtar <code>.env.local</code> dosyasında durur.</div>
+  </div>
+
+  <h3>Kim kiminle konuşur?</h3>
+<pre>  Tarayıcı ──(1)──► Uygulama sunucusu (localhost:3000)
+                        │
+                        ├──(2)──► Veritabanı (Docker, localhost:5433)
+                        ├──(3)──► Google Gemini (internet)
+                        └──(4)──► Örnek mağaza API'si (localhost:3000/demo-api)   ← yalnızca “İsteği dene” ile</pre>
+
+  <h3>Ayarlar dosyası: <code>.env.local</code></h3>
+  <p>Programın gizli ve ortama özel ayarları bu dosyada durur. <b>Git'e (dolayısıyla GitHub'a) asla gönderilmez</b>; herkese açık
+  <code>.env.example</code> dosyası ise yalnızca şablondur (içinde gerçek şifre yoktur).</p>
+  <table>
+    <tr><th>Ayar</th><th>Ne işe yarar</th></tr>
+    <tr><td><code>POSTGRES_PASSWORD</code>, <code>DATABASE_URL</code></td><td>Veritabanı şifresi ve bağlantı adresi</td></tr>
+    <tr><td><code>GEMINI_API_KEY</code></td><td>Google yapay zekâsını kullanma anahtarı (kişiye özel, gizli)</td></tr>
+    <tr><td><code>GEMINI_MODEL</code></td><td>Öneri üreten model (varsayılan <code>gemini-3.5-flash-lite</code>)</td></tr>
+    <tr><td><code>GEMINI_EMBEDDING_MODEL</code>, <code>EMBEDDING_DIM</code></td><td>Anlam vektörü modeli ve vektörün uzunluğu (768)</td></tr>
+    <tr><td><code>ALLOWED_API_ORIGINS</code></td><td>İstek gönderilmesine izin verilen adresler listesi (varsayılan yalnızca <code>http://localhost:3000</code>)</td></tr>
+    <tr><td><code>REQUEST_TIMEOUT_MS</code>, <code>MAX_RESPONSE_BYTES</code></td><td>Bir isteğin en fazla ne kadar bekleneceği (5 sn) ve en fazla ne kadar veri okunacağı (64 KB)</td></tr>
+  </table>
+</section>
+
+<!-- ========== 7 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 7</div>
+  <h1>Docker: neden ve nasıl?</h1>
+  <p>Bir veritabanını bilgisayara “normal yoldan” kurmak; doğru sürümü bulmak, kurulum sihirbazları, ayarlar, eklentiler (pgvector) demektir
+  ve her bilgisayarda biraz farklı gider. <b>Docker</b> bu işi tek komuta indirir.</p>
+  <div class="box analogy"><div class="t">Benzetme: nakliye konteyneri</div>
+    Gemilerdeki standart konteynerler içinde ne olursa olsun aynı vinçle taşınır. Docker da bir programı, çalışması için gereken her şeyle birlikte
+    standart bir kutuya koyar; bu kutu Windows'ta, Mac'te, sunucuda aynı şekilde çalışır.</div>
+
+  <h3>Docker terimleri</h3>
+  <table>
+    <tr><th>Terim</th><th>Anlamı</th><th>Bu projede</th></tr>
+    <tr><td><b>İmaj (image)</b></td><td>Hazır paketlenmiş program şablonu (“kalıp”)</td><td><code>pgvector/pgvector:pg17</code> — PostgreSQL 17 + pgvector eklentisi hazır</td></tr>
+    <tr><td><b>Konteyner (container)</b></td><td>İmajdan başlatılmış, çalışan kopya</td><td><code>pathfinder-db</code></td></tr>
+    <tr><td><b>Birim (volume)</b></td><td>Konteyner silinse bile kalan kalıcı disk alanı</td><td><code>api-pathfinder_pgdata</code> — veritabanı dosyaları burada</td></tr>
+    <tr><td><b>Port eşleme</b></td><td>Konteynerin içindeki kapıyı bilgisayardaki bir kapıya bağlamak</td><td><code>127.0.0.1:5433 → 5432</code>: bilgisayardaki 5433, kutunun içindeki 5432'ye gider; yalnızca bu bilgisayardan erişilebilir</td></tr>
+    <tr><td><b>Docker Compose</b></td><td>Konteynerleri bir ayar dosyasıyla tarif edip tek komutla başlatma</td><td><code>docker-compose.yml</code></td></tr>
+    <tr><td><b>Healthcheck</b></td><td>“Konteyner gerçekten hazır mı?” kontrolü</td><td>Birkaç saniyede bir <code>pg_isready</code> ile veritabanı yoklanır</td></tr>
+    <tr><td><b>Docker Desktop</b></td><td>Windows/Mac'te Docker'ı çalıştıran uygulama</td><td>Açık olmalı; görev çubuğunda balina simgesi</td></tr>
+  </table>
+
+  <h3><code>npm run db:up</code> dediğinde ne olur?</h3>
+  <ol>
+    <li>Docker, <code>docker-compose.yml</code> dosyasını okur; şifreyi <code>.env.local</code>'dan alır.</li>
+    <li>İmaj bilgisayarda yoksa internetten indirir (yalnızca ilk sefer).</li>
+    <li><code>pathfinder-db</code> konteynerini başlatır, <code>pgdata</code> birimini bağlar.</li>
+    <li><b>İlk açılışta</b> (birim boşsa) <code>db/init.sql</code> dosyasını çalıştırır: pgvector eklentisini açar ve 4 tabloyu oluşturur.</li>
+    <li>Healthcheck “healthy” der; uygulama artık bağlanabilir.</li>
+  </ol>
+  <p>Bunun gerçekten olduğunu <code>npm run db:logs</code> ile görebilirsin: çıktıda <code>running /docker-entrypoint-initdb.d/001-init.sql</code>,
+  ardından <code>CREATE EXTENSION</code>, 4 kez <code>CREATE TABLE</code> ve <code>ready to accept connections</code> satırları görünür.</p>
+  <div class="box note"><div class="t">Neden sadece veritabanı Docker'da?</div>
+    Uygulamanın kendisi (Next.js) <code>npm run dev</code> ile doğrudan çalışıyor; böylece kodda yaptığın değişiklik anında ekrana yansıyor.
+    Docker'a yalnızca kurulumu zahmetli olan parça (veritabanı + eklenti) konuldu.</div>
+</section>
+
+<!-- ========== 8 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 8</div>
+  <h1>Veritabanı: var mı, nerede, içinde ne var?</h1>
+  <p><b>Evet, var.</b> <b>Veritabanı</b>, bilgiyi düzenli ve kalıcı şekilde saklayan bir programdır. Bilgiler <b>tablolarda</b> durur;
+  tabloyu bir Excel sayfası gibi düşünebilirsin: <b>sütunlar</b> bilgi türünü (ad, adres…), <b>satırlar</b> tek tek kayıtları tutar.</p>
+
+  <h3>Nerede?</h3>
+  <ul>
+    <li><b>Program olarak:</b> Docker içindeki <code>pathfinder-db</code> konteynerinde çalışan PostgreSQL 17.</li>
+    <li><b>Adres:</b> <code>localhost:5433</code>, veritabanı adı <code>pathfinder</code>, kullanıcı <code>pathfinder</code>, şifre <code>.env.local</code>'da.</li>
+    <li><b>Dosyalar diskte:</b> Docker'ın <code>api-pathfinder_pgdata</code> biriminde (Docker Desktop'ın kendi disk alanı içinde). Proje klasöründe değil;
+      bu yüzden bilgisayarı kapatıp açsan da, <code>db:down</code> desen de veriler kalır. Yalnızca <code>npm run db:reset</code> siler.</li>
+  </ul>
+
+  <h3>4 tablo ve görevleri</h3>
+  <table>
+    <tr><th>Tablo</th><th>Ne saklar?</th><th>Önemli sütunlar</th></tr>
+    <tr><td><code>api_documents</code></td><td>Her içe aktarılan OpenAPI dokümanı (bir satır = bir doküman)</td><td>başlık, sürüm, sunucu adresi, dokümanın ham hali</td></tr>
+    <tr><td><code>operations</code></td><td>Dokümanlardaki her GET işlemi</td><td><code>operation_id</code>, yol, özet, açıklama, parametreler, <b>embed_text</b> (anlamı çıkarılan metin), <b>embedding</b> (768 sayılık anlam vektörü)</td></tr>
+    <tr><td><code>try_runs</code></td><td>Her “İsteği dene” denemesi</td><td>parametreler, sonuç türü (<code>sent</code> / <code>needs_input</code> / <code>not_executable</code>), gönderilen URL, durum kodu, gelen yanıt</td></tr>
+    <tr><td><code>investigations</code></td><td>Her yapay zekâ incelemesi</td><td>hedef, mod (<code>rag</code>/<code>agent</code>), <b>trace</b> (modelin istediği araçlar ve sonuçları), cevap</td></tr>
+  </table>
+<pre>api_documents (1) ──< operations (çok) ──< try_runs (çok)
+       └────────────< investigations (çok)
+“Bir dokümanın çok işlemi olur; bir işlem çok kez denenebilir.”</pre>
+
+  <h3>Veritabanına kendin bakmak</h3>
+  <p><code>npm run db:psql</code> komutu veritabanına bir sohbet penceresi açar. Burada <b>SQL</b> (veritabanı sorgu dili) yazarsın:</p>
+<pre>select id, title from api_documents;                       -- hangi dokümanlar var?
+select operation_id, path from operations;                  -- hangi işlemler kayıtlı?
+select id, state, url, http_status from try_runs;           -- hangi denemeler yapıldı?
+select id, mode, goal from investigations;                  -- hangi incelemeler yapıldı?
+\q                                                          -- çıkış</pre>
+  <div class="box here"><div class="t">Güvenlik notu: parametreli sorgu</div>
+    Doküman içeriği güvenilmezdir; içinde kötü niyetli SQL parçası olabilir (“SQL injection”). Bu yüzden kod, değerleri sorgu metnine asla yapıştırmaz;
+    <code>$1, $2</code> gibi yer tutucular kullanır ve değerleri ayrı gönderir. Veritabanı onları her zaman “veri” olarak görür, “komut” olarak değil.</div>
+</section>
+
+<!-- ========== 9 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 9</div>
+  <h1>Yapay zekâ kısmı</h1>
+
+  <h2>9.1 Embedding: metni “anlam koordinatına” çevirmek</h2>
+  <p><b>Embedding</b>, bir metni uzun bir sayı listesine (burada <b>768 sayı</b>) çeviren işlemdir. Bu sayılar, metnin anlamını çok boyutlu bir
+  “anlam haritası” üzerindeki bir noktanın koordinatları gibi temsil eder. Anlamca benzer metinler haritada birbirine yakın düşer.</p>
+  <div class="box analogy"><div class="t">Benzetme: harita</div>
+    “Satışta olan ürünleri listele” ile “indirimdeki ürünleri göster” cümleleri farklı kelimeler kullansa da haritada yan yana düşer;
+    “hava durumu” ise uzakta bir yerdedir. Bilgisayar kelimeleri değil, noktalar arasındaki <b>mesafeyi</b> karşılaştırır.</div>
+  <p>Pathfinder, içe aktarmada her işlemin açıklamasını bir kez embedding'e çevirip saklar. Sen bir hedef yazınca, hedefin de embedding'i
+  alınır ve kayıtlı noktalarla karşılaştırılır.</p>
+
+  <h2>9.2 pgvector: “en yakın hangisi?”</h2>
+  <p><b>pgvector</b>, PostgreSQL'in bu 768 sayılık vektörleri saklamasını ve aralarındaki mesafeyi hızlıca ölçmesini sağlar. Mesafe ölçüsü
+  <b>kosinüs benzerliği</b>dir: iki ok aynı yöne bakıyorsa benzerlik 1'e yakındır, farklı yönlere bakıyorsa küçülür.</p>
+  <div class="box note"><div class="t">En yakın = doğru değil</div>
+    pgvector her zaman bir “en yakın” sonuç verir, “hiçbiri uymuyor” demez. Gerçek bir ölçüm: dokümanda karşılığı olmayan
+    “Müşteri yorumlarını listele” hedefinde en yakın sonuç <code>listOrders</code> <b>0.643</b> aldı; oysa doğru bir eşleşme olan
+    “17 numaralı ürünü getir” → <code>getProductById</code> yalnızca <b>0.622</b> aldı. Yani tek başına puana bakıp karar vermek yanlış olurdu.
+    Bu yüzden son kararı yapay zekânın yorumu ve ardından <b>kodun kontrolü</b> verir.</div>
+  <figure><img src="img/07-raw.png" style="width:62%"><figcaption>“Ham arama” ekranı: sadece pgvector sıralaması, yapay zekâ yorumu yok. En üstteki sonuç yanlış bir eşleşme.</figcaption></figure>
+
+  <h2>9.3 Dil modeli (Gemini)</h2>
+  <p><b>Dil modeli</b> (LLM), metin okuyup metin üreten yapay zekâdır. Pathfinder'da <code>gemini-3.5-flash-lite</code> modeli, bulunan
+  aday işlemleri okuyup “hedefe en uygun olan şu, parametresi şu olmalı, çünkü…” diye gerekçeli bir öneri yazar.
+  Model güçlüdür ama <b>yanılabilir</b>; bu yüzden ekranda mor renkle “doğrulanmamış çıkarım” diye işaretlenir.</p>
+
+  <h2>9.4 RAG: “önce bul, sonra sor”</h2>
+  <p><b>RAG</b> (Retrieval-Augmented Generation — Getirme ile Güçlendirilmiş Üretim), modele soruyu sormadan önce ilgili bilgiyi
+  <b>bulup</b> soruyla birlikte vermektir. Model kendi hafızasından değil, önüne konan belgelerden cevap verir.</p>
+  <div class="box analogy"><div class="t">Benzetme: açık kitap sınavı</div>
+    Öğrenciye (modele) bütün kütüphane verilmez; kütüphaneci (pgvector) konuyla en ilgili 4 sayfayı bulup önüne koyar, öğrenci cevabını bu sayfalara
+    dayanarak yazar. “Getirilen bağlam” bölümünde tam olarak hangi 4 sayfanın verildiğini görebilirsin.</div>
+  <div class="flow">
+    <div class="n"><b>Hedef</b>“Satışta olan ürünler”</div><div class="a">→</div>
+    <div class="n"><b>Getir (pgvector)</b>En yakın 4 işlem</div><div class="a">→</div>
+    <div class="n"><b>Üret (Gemini)</b>Öneri + gerekçe (JSON)</div><div class="a">→</div>
+    <div class="n"><b>Kod kontrolü</b>Dokümanda var mı? Parametre geçerli mi?</div>
+  </div>
+  <p>RAG modunda adımlar <b>sabittir</b>: her seferinde önce ara, sonra cevapla.</p>
+
+  <h2>9.5 Araç çağırma (function calling) ve agent</h2>
+  <p><b>Function calling</b>, modele “kullanabileceğin araçlar şunlar” diye bir liste vermektir. Model bir aracı kendisi <b>çalıştıramaz</b>;
+  sadece “şu aracı, şu bilgiyle çalıştırmak istiyorum” diye <b>istek</b> yazar. Aracı çalıştıran, izin verip vermeyeceğine karar veren
+  Pathfinder'ın kodudur. Sonuç modele geri verilir ve model bir sonraki adımına karar verir. Bu döngüye <b>agent</b> (ajan) denir.</p>
+  <table>
+    <tr><th>Araç</th><th>Ne yapar</th><th>Modele verildi mi?</th></tr>
+    <tr><td><code>search_endpoints(query)</code></td><td>Verilen metinle anlam araması yapar, en yakın 4 işlemi döndürür</td><td>Evet</td></tr>
+    <tr><td><code>inspect_endpoint(operation_id)</code></td><td>Bir işlemin dokümandaki tüm detayını döndürür</td><td>Evet</td></tr>
+    <tr><td><code>try_get_request(operation_id, parameters)</code></td><td>Gerçek GET isteğini gönderir</td><td><b>Hayır.</b> Yalnızca sen “İsteği dene”ye basınca çalışır</td></tr>
+  </table>
+  <div class="box ai"><div class="t">Gerçek bir agent çalışması (senaryo 1)</div>
+    <b>Tur 1:</b> Model: “search_endpoints('Satışta olan ürünleri listele') çalıştır.” → Sunucu arar: listProducts 0.714, listCategories 0.643…<br>
+    <b>Tur 2:</b> Model en yüksek puana körü körüne güvenmez: “inspect_endpoint('listProducts') çalıştır.” → Sunucu detayı verir: “status parametresi var, çalıştırılabilir.”<br>
+    <b>Tur 3:</b> Model artık araç istemez, son cevabını yazar: “listProducts, status=on_sale.”<br>
+    Sınır: en fazla <b>4 araç adımı</b>. Model sonsuza kadar araç istese bile kod 4'te durdurur.</div>
+  <p><b>RAG ile agent farkı:</b> RAG'de yol baştan çizilidir. Agent'ta ise model bir aracın sonucuna bakıp sonraki adımı <i>kendisi</i> seçer;
+  örneğin ilk arama zayıf çıkarsa İngilizce anahtar kelimelerle tekrar arar ya da bir adayın detayına bakar.</p>
+</section>
+
+<!-- ========== 10 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 10</div>
+  <h1>Bir isteğin baştan sona yolculuğu</h1>
+  <p>“Satışta olan ürünleri listele” yazıp <b>İncele (Agent + araçlar)</b>'a bastığında, sonra da <b>İsteği dene</b>'ye bastığında perde arkasında olanlar:</p>
+  <div class="step"><div class="num">1</div><div><h3>Tarayıcı → sunucu</h3>Tarayıcı, hedefini <code>/api/investigate</code> adresine gönderir. <b>Hedef API'ye henüz hiçbir şey gitmez.</b></div></div>
+  <div class="step"><div class="num">2</div><div><h3>Sunucu ⇄ Gemini (araç döngüsü)</h3>Sunucu hedefini ve araç listesini Gemini'ye yollar. Model araç ister, sunucu aracı çalıştırır (veritabanında anlam araması, işlem detayı),
+    sonucu modele geri yollar. Bu 2–3 tur sürer; her adım ekrandaki “Araç izi” tablosuna ve <code>investigations</code> tablosuna yazılır.</div></div>
+  <div class="step"><div class="num">3</div><div><h3>Modelin önerisi (mor kutu)</h3>“listProducts, status=on_sale, güven: yüksek” ve Türkçe gerekçe.</div></div>
+  <div class="step"><div class="num">4</div><div><h3>Kodun kontrolü (gri/mavi kutu)</h3>İşlem dokümanda var mı? Model bu işlemi bir araç sonucunda gerçekten gördü mü? <code>on_sale</code> izin verilen değerlerden mi?
+    Eksik zorunlu parametre var mı? Hepsi geçerse URL program tarafından kurulur ve “hazır — gönderilmedi” yazar.</div></div>
+  <div class="step"><div class="num">5</div><div><h3>Sen onay verirsin</h3><b>Bu işlemi incele ve dene →</b> formu doldurur; <b>İsteği dene</b>'ye bastığında tarayıcı <code>/api/try</code>'a yalnızca
+    işlem adını ve parametreleri gönderir — <b>adres göndermez</b>.</div></div>
+  <div class="step"><div class="num">6</div><div><h3>Güvenli gönderim</h3>Sunucu adresi dokümandan yeniden kurar, izin listesinde mi bakar, 5 sn zaman sınırı ve 64 KB boyut sınırıyla,
+    yönlendirme takip etmeden gerçek GET isteğini atar.</div></div>
+  <div class="step"><div class="num">7</div><div><h3>Mağaza API'si cevap verir → yeşil kutu</h3><code>200 OK</code>, 8 ürün. Sonuç <code>try_runs</code> tablosuna kaydedilir; ekranda URL, durum kodu, süre,
+    gerçek JSON ve kopyalanabilir bir TypeScript kod örneği görünür.</div></div>
+  <figure><img src="img/06-agent.png" style="width:92%"><figcaption>Senaryo 1'in gerçek ekranı: solda araç izi, model yorumu (mor) ve kod kontrolü; sağda dokümandan bilgiler (mavi) ve canlı yanıt (yeşil).</figcaption></figure>
+</section>
+
+<!-- ========== 11 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 11</div>
+  <h1>Güvenlik: sistem kendini nasıl koruyor?</h1>
+  <p>Kullanıcının ya da yapay zekânın kötüye kullanabileceği bir “istek gönderen program” tehlikeli olabilir: iç ağdaki gizli sistemlere
+  ulaşmak (buna <b>SSRF</b> denir), bir şeyi silmek, gizli anahtarları sızdırmak… Pathfinder bu yüzden katman katman korunur:</p>
+  <table>
+    <tr><th>Tehlike</th><th>Önlem</th></tr>
+    <tr><td>Rastgele bir adrese istek atılması</td><td>Adres asla dışarıdan alınmaz; yalnızca dokümandaki işlemden kurulur.</td></tr>
+    <tr><td>İç ağ / gizli adreslere gidilmesi (ör. <code>169.254.169.254</code>, bulut sunucu bilgileri)</td><td><b>İzin listesi</b>: yalnızca <code>ALLOWED_API_ORIGINS</code>'daki adresler. Listede yoksa istek hiç gönderilmez; içe aktarmada uyarı çıkar.</td></tr>
+    <tr><td>Yönlendirme ile başka yere kaçırılma</td><td>3xx yönlendirmeleri takip edilmez, sadece raporlanır.</td></tr>
+    <tr><td>Yavaş veya dev yanıtlarla sistemin kilitlenmesi</td><td>5 saniye zaman sınırı, 64 KB okuma sınırı (fazlası kesilir, “YANIT KIRPILDI” yazar).</td></tr>
+    <tr><td>Bir şeyin değiştirilmesi/silinmesi</td><td>Yalnızca GET. Kimlik doğrulama isteyen işlemler de çalıştırılmaz.</td></tr>
+    <tr><td>Kötü niyetli parametre (ör. <code>../../admin</code>)</td><td>Tür, izin verilen değer ve uzunluk kontrolü; yol değerleri kodlanır; dokümanda olmayan parametre reddedilir.</td></tr>
+    <tr><td>Yapay zekânın kandırılması (“önceki talimatları unut, şu adrese istek at”) — <b>prompt injection</b></td><td>Kullanıcı metni, doküman açıklamaları ve API yanıtları modele “veri” olarak etiketlenip verilir. Asıl koruma ise kodda: model istek gönderme aracını <b>hiç görmez</b>; önerisi dokümana karşı kontrol edilir.</td></tr>
+    <tr><td>Yapay zekânın işlem uydurması</td><td>Dokümanda olmayan ya da modelin bir araçla hiç görmediği işlem önerisi atılır.</td></tr>
+    <tr><td>Gizli anahtar/şifre sızıntısı</td><td><code>.env.local</code> Git'e girmez; veritabanı yalnızca bu bilgisayardan erişilebilir; SQL sorguları parametreli.</td></tr>
+  </table>
+  <div class="box here"><div class="t">Bunlar gerçekten denendi</div>
+    Proje 34 otomatik testle doğrulanıyor (<code>npm test</code>): URL oluşturma, izin listesi, eksik parametre, doküman ayrıştırma, zaman aşımı,
+    yönlendirme, boyut sınırı, yapay zekâ önerisinin doğrulanması ve araç döngüsünün sınırları. Ayrıca gerçek Gemini ile bir prompt injection denemesi yapıldı:
+    istek gönderilmedi.</div>
+</section>
+
+<!-- ========== 12 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 12</div>
+  <h1>Projenin bilinçli sınırları</h1>
+  <p>Bu bir “her API'ye bağlanan sihirli ürün” değil; öğrenme amaçlı, kapsamı bilerek dar tutulmuş çalışan bir prototip.</p>
+  <ul>
+    <li>Yalnızca <b>JSON</b> biçimindeki <b>OpenAPI 3.x</b> dokümanları (YAML ve eski Swagger 2.0 desteklenmez).</li>
+    <li>Yalnızca <b>GET</b>; yalnızca basit <b>path</b> ve <b>query</b> parametreleri (metin, sayı, doğru/yanlış). Başlık (header), çerez (cookie),
+      liste veya nesne tipindeki parametreler “desteklenmiyor” diye açıkça işaretlenir.</li>
+    <li>Kimlik doğrulama (API anahtarı, token) isteyen işlemler çalıştırılmaz.</li>
+    <li>Dokümanın başka dosyalara verdiği bağlantılar (uzak <code>$ref</code>) indirilmez.</li>
+    <li>Varsayılan olarak yalnızca örnek mağazaya istek atılabilir; başka bir API için izin listesine elle eklemek gerekir.</li>
+    <li>Ücretsiz Gemini hesabında günlük istek kotası sınırlıdır; bir agent incelemesi 2–3 istek harcar.</li>
+    <li>Tek kişilik, yerel kullanım içindir: kullanıcı girişi veya internete yayınlama ayarı yoktur.</li>
+  </ul>
+  <h3>Sonraki adımlar için fikirler</h3>
+  <ul>
+    <li>Herkese açık, anahtarsız gerçek bir API'yi (ör. bir kamu veri servisi) izin listesine ekleyip desteklemek.</li>
+    <li>YAML desteği, liste tipinde parametreler, başlık parametreleri.</li>
+    <li>Gelen yanıtın dokümandaki şekle uyup uymadığını otomatik kontrol etmek.</li>
+    <li>Küçük bir ölçüm seti: “hedef → beklenen işlem” listesiyle RAG ve agent modlarının isabetini ölçmek.</li>
+  </ul>
+</section>
+
+<!-- ========== 13 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 13</div>
+  <h1>Sözlük</h1>
+  <table class="long">
+    <tr><th style="width:24%">Terim</th><th>Açıklama</th></tr>
+    <tr><td>Agent (ajan)</td><td>Bir aracın sonucuna göre sonraki adımını kendisi seçen, sınırlı sayıda adım atan yapay zekâ döngüsü.</td></tr>
+    <tr><td>API</td><td>Bir programın başka programlara açtığı, kuralları belli kapı.</td></tr>
+    <tr><td>API anahtarı</td><td>Bir servisi kullanma hakkını kanıtlayan gizli metin (şifre gibi).</td></tr>
+    <tr><td>Bağlam (context)</td><td>Yapay zekâya soruyla birlikte verilen bilgi.</td></tr>
+    <tr><td>Commit</td><td>Git'te kaydedilmiş bir değişiklik paketi (“kayıt noktası”).</td></tr>
+    <tr><td>Durum kodu</td><td>HTTP yanıtının sonucunu anlatan 3 haneli sayı (200, 404…).</td></tr>
+    <tr><td>Embedding</td><td>Metnin anlamını temsil eden sayı listesi (burada 768 sayı).</td></tr>
+    <tr><td>Endpoint / uç nokta</td><td>API'deki tek bir işlemin adresi (ör. <code>GET /products</code>).</td></tr>
+    <tr><td>Enum</td><td>Bir parametre için izin verilen değerlerin sabit listesi (ör. on_sale, in_stock, out_of_stock).</td></tr>
+    <tr><td>Framework (çatı)</td><td>Uygulama yazmayı kolaylaştıran hazır iskelet (Next.js).</td></tr>
+    <tr><td>Function calling</td><td>Yapay zekânın bir aracın çalıştırılmasını <i>istemesi</i>; çalıştıran uygulamadır.</td></tr>
+    <tr><td>GET / POST / PUT / PATCH / DELETE</td><td>HTTP yöntemleri: oku / oluştur / tamamen değiştir / kısmen değiştir / sil.</td></tr>
+    <tr><td>HTTP / HTTPS</td><td>Web'in iletişim dili / şifreli hali.</td></tr>
+    <tr><td>İstemci / sunucu</td><td>İsteyen taraf / cevap veren taraf.</td></tr>
+    <tr><td>JSON</td><td>Süslü ve köşeli parantezlerle yazılan, programların veri alışverişinde kullandığı metin biçimi.</td></tr>
+    <tr><td>Konteyner / imaj / volume</td><td>Docker'da çalışan kutu / kutunun kalıbı / kutu silinse de kalan kalıcı disk.</td></tr>
+    <tr><td>Kosinüs benzerliği</td><td>İki vektörün ne kadar aynı yöne baktığının ölçüsü; 1'e yakın = çok benzer.</td></tr>
+    <tr><td>localhost</td><td>“Bu bilgisayar”.</td></tr>
+    <tr><td>LLM (dil modeli)</td><td>Metin okuyup metin üreten yapay zekâ (Gemini).</td></tr>
+    <tr><td>OpenAPI</td><td>API'lerin işlemlerini tarif eden standart doküman biçimi.</td></tr>
+    <tr><td>operationId</td><td>Bir API işleminin benzersiz adı.</td></tr>
+    <tr><td>Parametre (path / query)</td><td>İsteğe eklenen bilgi; yolun içine (<code>/products/17</code>) veya <code>?</code>'den sonra (<code>?status=on_sale</code>).</td></tr>
+    <tr><td>pgvector</td><td>PostgreSQL için vektör saklama ve benzerlik arama eklentisi.</td></tr>
+    <tr><td>Port</td><td>Bir bilgisayardaki programların “kapı numarası”.</td></tr>
+    <tr><td>PostgreSQL</td><td>Açık kaynaklı veritabanı sistemi.</td></tr>
+    <tr><td>Prompt injection</td><td>Yapay zekâyı, veri içine gizlenmiş talimatlarla kandırma girişimi.</td></tr>
+    <tr><td>RAG</td><td>Önce ilgili bilgiyi getirip sonra yapay zekâya bu bilgiyle cevap ürettirme yöntemi.</td></tr>
+    <tr><td>$ref</td><td>OpenAPI dokümanında “bu bilgi şurada” bağlantısı.</td></tr>
+    <tr><td>Route Handler</td><td>Next.js'te bir adrese gelen isteği karşılayan sunucu kodu (ör. <code>/api/try</code>).</td></tr>
+    <tr><td>SQL / parametreli sorgu</td><td>Veritabanı sorgu dili / değerlerin sorguya yapıştırılmadan ayrı gönderildiği güvenli yazım.</td></tr>
+    <tr><td>SSRF</td><td>Bir sunucuyu, saldırganın erişemediği iç adreslere istek atmaya kandırma saldırısı.</td></tr>
+    <tr><td>Timeout</td><td>Bir işlemin en fazla ne kadar bekleneceği sınırı.</td></tr>
+    <tr><td>Vektör</td><td>Sıralı sayı listesi; burada bir metnin anlam koordinatları.</td></tr>
+  </table>
+</section>
+
+<!-- ========== 14 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 14</div>
+  <h1>Projeyi ayağa kaldırma (adım adım)</h1>
+
+  <h2>A. İlk kurulum (bir kez yapılır)</h2>
+  <p class="small">Senin bilgisayarında bunların hepsi zaten yapıldı. Başka bir bilgisayarda sıfırdan kurmak için:</p>
+  <div class="step"><div class="num">1</div><div><h3>Gerekli programları kur</h3>
+    <b>Node.js</b> (LTS sürümü, nodejs.org — proje 24 ile test edildi), <b>Docker Desktop</b> (docker.com), <b>Git</b>. İstersen kod editörü olarak <b>VS Code</b>.</div></div>
+  <div class="step"><div class="num">2</div><div><h3>Projeyi bilgisayara al</h3>GitHub'dan indir (<code>git clone …</code>) ya da klasörü kopyala. Proje klasöründe bir terminal aç
+    (VS Code: <b>Terminal → New Terminal</b>).</div></div>
+  <div class="step"><div class="num">3</div><div><h3>Hazır kod paketlerini indir</h3>
+<pre>npm install</pre>Bu komut <code>package.json</code>'daki kütüphaneleri (Next.js, React, PostgreSQL sürücüsü, Gemini SDK…) <code>node_modules</code> klasörüne indirir.</div></div>
+  <div class="step"><div class="num">4</div><div><h3>Ayar dosyasını oluştur</h3>
+<pre>copy .env.example .env.local</pre>
+    <code>.env.local</code>'ı aç: <code>POSTGRES_PASSWORD</code> için bir şifre yaz ve <b>aynı şifreyi</b> <code>DATABASE_URL</code> içindeki <code>change-me</code> yerine koy.</div></div>
+  <div class="step"><div class="num">5</div><div><h3>Gemini API anahtarı al</h3><code>aistudio.google.com/apikey</code> adresinde “Create API key” → anahtarı kopyala →
+    <code>.env.local</code>'daki <code>GEMINI_API_KEY=</code> satırının sonuna boşluksuz yapıştır → kaydet. Anahtarı kimseyle paylaşma.</div></div>
+
+  <h2>B. Her kullanımda</h2>
+  <div class="step"><div class="num">1</div><div><h3>Docker Desktop'ı aç</h3>Görev çubuğunda balina simgesi görünene ve “Engine running” olana kadar bekle.</div></div>
+  <div class="step"><div class="num">2</div><div><h3>Veritabanını başlat</h3>
+<pre>npm run db:up</pre>Beklenen: <code>Container pathfinder-db Started</code> (veya <code>Running</code>). İstersen <code>docker ps</code> ile <code>pathfinder-db … (healthy)</code> satırını gör.</div></div>
+  <div class="step"><div class="num">3</div><div><h3>(İsteğe bağlı) Testleri çalıştır</h3>
+<pre>npm test</pre>Beklenen son satır: <code>Tests 34 passed (34)</code>. Bu adım yapay zekâ kotası harcamaz.</div></div>
+  <div class="step"><div class="num">4</div><div><h3>Uygulamayı başlat</h3>
+<pre>npm run dev</pre><code>✓ Ready</code> yazısını bekle. Bu terminal açık kaldığı sürece uygulama çalışır.</div></div>
+  <div class="step"><div class="num">5</div><div><h3>Tarayıcıda aç</h3><code>http://localhost:3000</code></div></div>
+  <div class="step"><div class="num">6</div><div><h3>Kapatma</h3>Uygulama: terminalde <span class="kbd">Ctrl</span> + <span class="kbd">C</span>. Veritabanı: <code>npm run db:down</code> (veriler silinmez).</div></div>
+
+  <h3>Komut özeti</h3>
+  <table>
+    <tr><th>Komut</th><th>Ne yapar</th></tr>
+    <tr><td><code>npm run db:up</code></td><td>Veritabanı konteynerini başlatır</td></tr>
+    <tr><td><code>npm run db:down</code></td><td>Konteyneri durdurur (veri kalır)</td></tr>
+    <tr><td><code>npm run db:logs</code></td><td>Veritabanı kayıtlarını canlı gösterir (çıkış: Ctrl+C)</td></tr>
+    <tr><td><code>npm run db:psql</code></td><td>Veritabanına SQL yazabileceğin pencere açar (çıkış: <code>\q</code>)</td></tr>
+    <tr><td><code>npm run db:reset</code></td><td>Veritabanını <b>tamamen siler</b> ve boş tablolarla yeniden kurar</td></tr>
+    <tr><td><code>npm run dev</code></td><td>Uygulamayı geliştirme modunda başlatır (port 3000)</td></tr>
+    <tr><td><code>npm test</code></td><td>34 otomatik testi çalıştırır</td></tr>
+    <tr><td><code>npm run typecheck</code></td><td>Kodda tip hatası var mı kontrol eder</td></tr>
+  </table>
+  <div class="box note"><div class="t">PowerShell uyarısı</div>
+    Windows PowerShell'de <code>npm.ps1 cannot be loaded</code> hatası alırsan komutları <code>npm.cmd run dev</code> şeklinde yaz ya da Komut İstemi (cmd) kullan.</div>
+</section>
+
+<!-- ========== 15 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 15</div>
+  <h1>Ekran rehberi: her düğme ne işe yarar, bize ne sunar?</h1>
+  <figure><img src="img/01-start.png" style="width:88%"><figcaption>Açılış ekranı</figcaption></figure>
+
+  <h2>Bölüm “1. OpenAPI JSON içe aktar”</h2>
+  <table>
+    <tr><th style="width:26%">Seçenek</th><th>Ne yapar?</th><th style="width:34%">Bize ne sunar?</th></tr>
+    <tr><td><b>Metin kutusu</b></td><td>OpenAPI JSON'ını elle yapıştırabileceğin alan.</td><td>Herhangi bir API'nin dokümanını denemek.</td></tr>
+    <tr><td><span class="btn o">Demo dokümanı yükle</span></td><td>Proje içindeki örnek mağaza dokümanını kutuya doldurur (henüz kaydetmez).</td><td>Hiçbir şey hazırlamadan hızlı başlangıç.</td></tr>
+    <tr><td><span class="btn o">JSON dosyası seç</span></td><td>Bilgisayarından bir <code>.json</code> dosyası seçip içeriğini kutuya koyar (en fazla 1 MB).</td><td>Elindeki bir doküman dosyasını kolayca yüklemek.</td></tr>
+    <tr><td><span class="btn">İçe aktar</span></td><td>Dokümanı kontrol eder, GET işlemlerini çıkarır, veritabanına kaydeder ve her işlem için anlam vektörü üretir.</td><td>“4 GET işlemi kaydedildi, 4 embedding üretildi”, atlanan işlemler ve varsa uyarılar (ör. “sunucu izin listesinde değil”).</td></tr>
+    <tr><td><b>Doküman</b> seçim kutusu</td><td>Daha önce içe aktarılmış dokümanlardan birini seçer.</td><td>Her seferinde yeniden içe aktarmadan çalışmak. Yanında işlem ve embedding sayısı yazar.</td></tr>
+    <tr><td><span class="btn o">Eksik N embedding'i üret</span></td><td>Yalnızca bazı işlemlerin anlam vektörü yoksa görünür (ör. anahtar eklenmeden önce içe aktarıldıysa).</td><td>Arama yapılabilir hale getirir.</td></tr>
+  </table>
+
+  <h2>Sağ üst: “Dokümandaki GET işlemleri”</h2>
+  <figure><img src="img/02-doc-selected.png" style="width:88%"><figcaption>Doküman seçildikten sonra: solda hedef alanı, sağda işlem listesi</figcaption></figure>
+  <p>Kayıtlı her GET işlemi listelenir. Bir satıra tıklamak o işlemi aşağıdaki <b>“İncele ve dene”</b> paneline açar — yapay zekâ kullanmadan,
+  <b>elle</b> işlem seçip denemek için. Etiketler: <b>“çalıştırılamaz”</b> (kimlik doğrulama gibi bir engel var), <b>“embedding yok”</b> (henüz aranamaz).</p>
+
+  <h2>Bölüm “Hedefini yaz”</h2>
+  <table>
+    <tr><th style="width:26%">Seçenek</th><th>Ne yapar?</th><th style="width:34%">Bize ne sunar?</th></tr>
+    <tr><td><b>Hedef kutusu</b></td><td>Ne yapmak istediğini doğal dille yaz (Türkçe olabilir). <span class="kbd">Enter</span> agent incelemesini başlatır.</td><td>—</td></tr>
+    <tr><td><span class="btn o">Ham arama (yalnızca pgvector)</span></td><td>Yapay zekâ yorumu olmadan, sadece anlam benzerliğine göre sıralama yapar.</td><td>Her işlemin benzerlik puanı ve mesafesi, embedding'e giden metin. “En yakın ≠ doğru” olduğunu görmek için.</td></tr>
+    <tr><td><span class="btn">İncele (RAG)</span></td><td>Sabit zincir: en yakın 4 işlemi bulur, modele verir, modelden gerekçeli öneri alır, kod kontrol eder.</td><td>“Getirilen bağlam” (modele tam olarak ne verildi), mor model yorumu, kod doğrulama kutusu.</td></tr>
+    <tr><td><span class="btn">İncele (Agent + araçlar)</span></td><td>Model araçları kendisi seçerek (en fazla 4 adım) araştırır.</td><td>“Araç izi” tablosu: modelin istediği her çağrı, sunucunun çalıştırması, süre, sonucu. Ardından model yorumu ve kod doğrulaması.</td></tr>
+  </table>
+  <p class="small">Bu üç düğmenin hiçbiri hedef API'ye istek göndermez. Yapay zekâ kullanan ikisi Gemini kotası harcar (RAG ≈ 2, agent ≈ 3–4 çağrı).</p>
+  <figure><img src="img/03-rag-orders.png" style="width:52%"><figcaption>“Siparişlerimi göster” (RAG): model doğru işlemi buldu ama kod “çalıştırılamaz” dedi (kimlik doğrulama gerekiyor)</figcaption></figure>
+</section>
+
+<section class="chapter">
+  <h2>Sonuç kutuları: renkler ne anlatır?</h2>
+  <table>
+    <tr><th style="width:30%">Kutu</th><th>Kaynağı</th><th>Nasıl yorumlanmalı?</th></tr>
+    <tr><td style="border-left:4px solid var(--ai)"><b>Model yorumu — doğrulanmamış çıkarım</b> (mor)</td><td>Gemini</td><td>Bir öneri ve gerekçe. Yanılabilir; son söz değildir.</td></tr>
+    <tr><td style="border-left:4px solid var(--accent)"><b>Kod doğrulaması: hazır — gönderilmedi</b></td><td>Pathfinder'ın kodu</td><td>Öneri dokümana uygun; gönderilecek URL hazır ama henüz gönderilmedi. <span class="btn">Bu işlemi incele ve dene →</span> formu doldurur.</td></tr>
+    <tr><td style="border-left:4px solid var(--warn)"><b>eksik girdi</b> / <b>çalıştırılamaz</b> / <b>uygun işlem yok</b> (sarı)</td><td>Pathfinder'ın kodu</td><td>Eksik zorunlu parametre var; ya işlem engelli (kimlik doğrulama, izin listesi); ya da dokümanda uygun işlem yok — uydurulmadı.</td></tr>
+    <tr><td style="border-left:4px solid var(--accent)"><b>Dokümandan (OpenAPI)</b> (mavi)</td><td>OpenAPI dokümanı</td><td>İşlemin kılavuzdaki gerçek tanımı: yol, açıklama, kaynak konumu, beklenen yanıt şekli, parametre tablosu.</td></tr>
+    <tr><td style="border-left:4px solid var(--ok)"><b>Canlı istekte gözlenen</b> (yeşil)</td><td>Gerçek HTTP yanıtı</td><td>2xx: istek başarılı. Veriyi kontrol et — 200 hedefin karşılandığını kanıtlamaz.</td></tr>
+    <tr><td style="border-left:4px solid var(--err)"><b>Canlı istekte gözlenen — HATA</b> (kırmızı)</td><td>Gerçek HTTP yanıtı</td><td>4xx/5xx, zaman aşımı veya ağ hatası. Başarı gibi gösterilmez.</td></tr>
+  </table>
+
+  <h2>Panel “İncele ve dene”</h2>
+  <table>
+    <tr><th style="width:26%">Seçenek</th><th>Ne yapar?</th><th style="width:34%">Bize ne sunar?</th></tr>
+    <tr><td><b>Parametre alanları</b></td><td>İşlemin istediği bilgiler. Kırmızı <b>*</b> zorunlu demektir. İzin verilen değer listesi varsa açılır menü çıkar.</td><td>Yapay zekâ önerdiyse önceden dolu gelir; istediğin gibi değiştirebilirsin.</td></tr>
+    <tr><td>▶ <b>Embedding için saklanan metin</b></td><td>Bu işlemin anlam aramasında kullanılan metni açar.</td><td>Aramanın neye göre yapıldığını görmek.</td></tr>
+    <tr><td><span class="btn">İsteği dene</span></td><td><b>Gerçek isteği gönderen tek düğme.</b> Önce parametreleri kontrol eder; eksik/hatalıysa göndermez.</td><td>Gerçek URL, durum kodu, süre, içerik türü, gerçek yanıt (en fazla 64 KB), uygulamanın yorumu ve kopyalanabilir <b>TypeScript fetch örneği</b>. Her deneme <code>try_runs</code> tablosuna yazılır.</td></tr>
+  </table>
+  <div class="two">
+    <figure><img src="img/04-missing-param.png"><figcaption>Zorunlu <code>id</code> boş: istek gönderilmedi</figcaption></figure>
+    <figure><img src="img/05-404.png"><figcaption><code>id = 999</code>: gerçek 404, kırmızı hata kutusu</figcaption></figure>
+  </div>
+</section>
+
+<!-- ========== 16 ========== -->
+<section class="chapter">
+  <div class="chapter-num">Bölüm 16</div>
+  <h1>Deneme senaryoları ve sorun giderme</h1>
+  <p>Önce <b>Demo dokümanı yükle → İçe aktar</b> (veya seçim kutusundan mevcut dokümanı seç). Sonra:</p>
+  <table>
+    <tr><th>#</th><th>Hedef / işlem</th><th>Düğme</th><th>Beklenen</th><th>Neyi gösterir?</th></tr>
+    <tr><td>1</td><td>Satışta olan ürünleri listele</td><td>İncele (Agent) → Bu işlemi incele ve dene → İsteği dene</td><td>Araç izinde 2 adım; <code>listProducts</code>, <code>status=on_sale</code>; <b>200 OK</b>, 8 ürün</td><td>Uçtan uca akış, function calling</td></tr>
+    <tr><td>2</td><td>17 numaralı ürünü getir</td><td>İncele (Agent) → dene</td><td><code>…/products/17</code>, 200, “Wireless Mouse”</td><td>Path parametresinin yerleşmesi</td></tr>
+    <tr><td>3</td><td>(Aynı form) <code>id</code> boş</td><td>İsteği dene</td><td>Sarı: “Eksik zorunlu parametre: id”</td><td>Eksik bilgide istek gönderilmez</td></tr>
+    <tr><td>4</td><td>(Aynı form) <code>id = 999</code></td><td>İsteği dene</td><td>Kırmızı: 404 Not Found</td><td>Hata başarı gibi gösterilmez</td></tr>
+    <tr><td>5</td><td>Müşteri yorumlarını listele</td><td>Ham arama, sonra İncele (RAG)</td><td>Ham aramada yine 4 sonuç; RAG: “uygun işlem yok”</td><td>Uydurmama; en yakın ≠ doğru</td></tr>
+    <tr><td>6</td><td>Siparişlerimi göster</td><td>İncele (RAG)</td><td><code>listOrders</code> bulunur ama “çalıştırılamaz”</td><td>Kimlik doğrulama sınırı</td></tr>
+    <tr><td>7</td><td>Merhaba, nasılsın?</td><td>İncele (Agent)</td><td>“Model hiç araç çağırmadı”, “uygun işlem yok”</td><td>Dürüst sonuç</td></tr>
+  </table>
+  <p class="small">Yapay zekâ cevapları her seferinde birebir aynı kelimelerle gelmeyebilir; ancak seçilen işlem ve kodun kararı aynı olmalıdır. Her inceleme 5–15 saniye sürebilir.</p>
+
+  <h3>Sorun giderme</h3>
+  <table>
+    <tr><th style="width:38%">Görülen</th><th>Sebep ve çözüm</th></tr>
+    <tr><td><code>ECONNREFUSED</code> / “Is the database running?”</td><td>Veritabanı kapalı. Docker Desktop'ı aç, <code>npm run db:up</code>.</td></tr>
+    <tr><td><code>GEMINI_API_KEY is not set</code> (503)</td><td>Anahtar yok ya da sunucu anahtar eklendikten sonra yeniden başlatılmadı. <code>.env.local</code>'u kontrol et, <code>npm run dev</code>'i durdurup tekrar başlat.</td></tr>
+    <tr><td><code>429 … quota exceeded</code></td><td>Gemini ücretsiz kotası doldu. Bekle ya da <code>GEMINI_MODEL</code>'i değiştirip sunucuyu yeniden başlat.</td></tr>
+    <tr><td><code>npm.ps1 cannot be loaded</code></td><td>PowerShell betik kısıtlaması. <code>npm.cmd …</code> kullan.</td></tr>
+    <tr><td>Port 3000 kullanımda</td><td>Başka bir <code>npm run dev</code> açık; o terminali kapat.</td></tr>
+    <tr><td>“Requests will not be sent: Origin … is not in ALLOWED_API_ORIGINS”</td><td>Dokümanın sunucusu izin listesinde değil. Bilinçli bir güvenlik önlemi; gerçekten güveniyorsan adresi <code>.env.local</code>'daki listeye ekleyip sunucuyu yeniden başlat.</td></tr>
+    <tr><td>Doküman listesinde aynı doküman birkaç kez</td><td>Her “İçe aktar” yeni kayıt açar. Temizlemek için <code>npm run db:reset</code> (tüm veriyi siler).</td></tr>
+  </table>
+  <div class="box here"><div class="t">Özet</div>
+    API Pathfinder; bir API kılavuzunu okuyup, anlam aramasıyla aday işlemleri bulan, yapay zekâya gerekçelendirten, bu gerekçeyi kodla doğrulayan
+    ve yalnızca kullanıcının onayıyla, güvenlik sınırları içinde gerçek isteği gönderen küçük ama uçtan uca çalışan bir sistemdir. Her adımda
+    “bilgi nereden geldi?” sorusunun cevabı ekranda görünür.</div>
+</section>
+
+</body>
+</html>
