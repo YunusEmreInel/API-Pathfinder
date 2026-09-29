@@ -1,67 +1,70 @@
 # 🧭 API Pathfinder
 
-**Find the right endpoint. Try it safely.** — *Doğru endpoint'i bul, güvenle dene.*
+**Find the right endpoint. Try it safely.**
 
-> Bir OpenAPI 3.x JSON dokümanı yükle, hedefini doğal dille yaz (“Satışta olan ürünleri nasıl listelerim?”).
-> Pathfinder uygun **GET** işlemini semantik aramayla bulur, Gemini ile inceler, parametreleri dokümana göre doğrular
-> ve **yalnızca sen “İsteği dene” dediğinde** izin listesindeki sunucuya gerçek bir GET isteği gönderir.
+> Upload an OpenAPI 3.x JSON document and describe your goal in plain language ("How do I list the products that are
+> on sale?"). Pathfinder finds the matching **GET** operation with semantic search, reviews it with Gemini, validates
+> the parameters against the document, and sends a real GET request to an allowlisted server **only when you click
+> "İsteği dene" (Try the request)**.
 
-*English summary: a small, deliberately scoped prototype that indexes the GET operations of an OpenAPI 3.x JSON document
-in PostgreSQL/pgvector, finds the operation that matches a natural-language goal (embeddings + RAG + a bounded Gemini
-function-calling loop), validates the model's proposal against the document, and sends a real, allowlisted GET request
-only after explicit user confirmation.*
+A small, deliberately scoped prototype: it indexes the GET operations of an OpenAPI 3.x JSON document in
+PostgreSQL/pgvector, finds the operation that matches a natural-language goal (embeddings + RAG + a bounded Gemini
+function-calling loop), validates the model's proposal against the document in code, and sends a real, allowlisted
+GET request only after explicit user confirmation.
 
-![Agent incelemesi, kod doğrulaması ve onaylı gerçek istek](docs/screenshot-agent.png)
+> The app's user interface is in **Turkish**. UI labels quoted below are given in Turkish with an English translation.
 
-📘 Yazılımla uğraşmayanlar için de anlaşılır, 27 sayfalık Türkçe rehber: [docs/API-Pathfinder-Rehber.pdf](docs/API-Pathfinder-Rehber.pdf)
-(kavramlar, mimari, veritabanı ve Docker, yapay zekâ kısmı, kurulum ve ekran rehberi).
+![Agent review, code validation and a confirmed real request](docs/screenshot-agent.png)
 
-Bu “her API'ye bağlanan sihirli ürün” değildir. Kapsam bilinçli olarak küçüktür (bkz. [Bilinen sınırlar](#bilinen-sınırlar)).
+📘 A 27-page guide in Turkish, written for non-developers too: [docs/API-Pathfinder-Rehber.pdf](docs/API-Pathfinder-Rehber.pdf)
+(concepts, architecture, database and Docker, the AI part, setup and a screen-by-screen guide).
 
-## Ne yapar
+This is not a "magic product that connects to any API". The scope is intentionally small (see [Known limitations](#known-limitations)).
 
-1. OpenAPI JSON'ı (yapıştırılan metin veya seçilen `.json` dosyası) doğrular, GET işlemlerini çıkarır, yerel `$ref`'leri çözer ve PostgreSQL'e kaydeder.
-2. Her işlemin dokümandaki açıklamasından embedding üretir (`gemini-embedding-2`, 768 boyut) ve bunu pgvector'e yazar.
-3. Hedefe semantik olarak yakın işlemleri puanlarıyla gösterir. Ham arama görünümünde model yoktur.
-4. İki inceleme modu vardır:
-   - **RAG (sabit zincir):** ara → getirilen işlemleri modele ver → yapılandırılmış JSON cevap al.
-   - **Agent (sınırlı döngü):** model `search_endpoints` / `inspect_endpoint` araçlarından hangisini çağıracağını seçer, aracı sunucu çalıştırır, sonuç modele geri gider. Döngü en fazla 4 araç adımıyla sınırlıdır.
-5. Modelin önerisini **kod** doğrular. Dokümanda olmayan işlem atılır, tanımsız parametreler silinir, eksik zorunlu parametre kullanıcıdan istenir.
-6. Kullanıcı onaylarsa gerçek GET isteği gönderilir. Arayüz; URL'yi, durum kodunu, boyutu sınırlanmış gerçek yanıtı ve çalıştırılabilir bir TypeScript `fetch` örneğini gösterir.
-7. Sonuç ekranında üç kaynak ayrı kutularda durur: **Dokümandan** (mavi), **Model yorumu — doğrulanmamış** (mor), **Canlı istekte gözlenen** (yeşil/kırmızı).
+## What it does
 
-## Mimari ve veri akışı
+1. Validates the OpenAPI JSON (pasted text or a selected `.json` file), extracts the GET operations, resolves local `$ref`s and stores them in PostgreSQL.
+2. Creates an embedding from each operation's description in the document (`gemini-embedding-2`, 768 dimensions) and writes it to pgvector.
+3. Shows the operations that are semantically closest to the goal, with their scores. The raw search view uses no model.
+4. Two review modes:
+   - **RAG (fixed chain):** search → give the retrieved operations to the model → get a structured JSON answer.
+   - **Agent (bounded loop):** the model chooses which of the `search_endpoints` / `inspect_endpoint` tools to call, the server runs the tool, and the result goes back to the model. The loop is limited to at most 4 tool steps.
+5. **Code** validates the model's proposal. Operations that are not in the document are discarded, undefined parameters are removed, and missing required parameters are requested from the user.
+6. If the user confirms, a real GET request is sent. The UI shows the URL, status code, a size-limited real response and a runnable TypeScript `fetch` example.
+7. On the result screen, three sources are kept in separate boxes: **From the document** (blue), **Model interpretation — not verified** (purple), **Observed in the live request** (green/red).
+
+## Architecture and data flow
 
 ```
-Tarayıcı (Next.js App Router, React)
+Browser (Next.js App Router, React)
   │
-  ├─ POST /api/import ─────► openapi.ts: doğrula, yerel $ref çöz, GET'leri çıkar
+  ├─ POST /api/import ─────► openapi.ts: validate, resolve local $ref, extract GETs
   │                            └─► db.ts: api_documents + operations
   │                            └─► indexing.ts ─► Gemini embedContent ─► operations.embedding (vector(768))
   │
-  ├─ POST /api/search ─────► search.ts: hedef → embedding → pgvector `ORDER BY embedding <=> $q` (model yok)
+  ├─ POST /api/search ─────► search.ts: goal → embedding → pgvector `ORDER BY embedding <=> $q` (no model)
   │
   ├─ POST /api/investigate
-  │     mode=rag   ─► rag.ts: search → getirilen bağlam → Gemini (JSON şema) → proposal.ts doğrular
-  │     mode=agent ─► agent.ts: Gemini ⇄ tools.ts (search_endpoints, inspect_endpoint), ≤4 adım
-  │                     model function_call önerir → sunucu çalıştırır → function_result geri gider
-  │                     └─► investigations tablosuna tam iz yazılır
-  │     (Bu rota hedef API'ye asla istek göndermez.)
+  │     mode=rag   ─► rag.ts: search → retrieved context → Gemini (JSON schema) → validated by proposal.ts
+  │     mode=agent ─► agent.ts: Gemini ⇄ tools.ts (search_endpoints, inspect_endpoint), ≤4 steps
+  │                     model proposes a function_call → server runs it → function_result goes back
+  │                     └─► full trace written to the investigations table
+  │     (This route never sends a request to the target API.)
   │
-  └─ POST /api/try  ───────► tools.ts try_get_request  (modele TANIMLANMAZ, yalnızca kullanıcı onayı)
-                               └─► request-builder.ts: URL'yi yalnızca dokümandaki işlem + doğrulanmış parametrelerden kur
-                               └─► safe-fetch.ts: origin izin listesi, redirect takip etme, timeout, boyut sınırı
-                               └─► try_runs tablosu
+  └─ POST /api/try  ───────► tools.ts try_get_request  (NOT exposed to the model; user confirmation only)
+                               └─► request-builder.ts: builds the URL only from the documented operation + validated parameters
+                               └─► safe-fetch.ts: origin allowlist, no redirects, timeout, size limit
+                               └─► try_runs table
 
-Örnek mağaza API'si aynı uygulamada gerçek Route Handler'lardır: /demo-api/products, /products/{id}, /categories
+The sample store API consists of real Route Handlers in the same app: /demo-api/products, /products/{id}, /categories
 PostgreSQL 17 + pgvector: Docker Compose (localhost:5433)
 ```
 
-**Tablolar** (`db/init.sql`): `api_documents`, `operations` (işlem verisi, embedding'e giden metin, `vector(768)`), `try_runs` (her onaylı deneme), `investigations` (her inceleme ve araç izi).
+**Tables** (`db/init.sql`): `api_documents`, `operations` (operation data, the text sent for embedding, `vector(768)`), `try_runs` (every confirmed try), `investigations` (every review and its tool trace).
 
-## Kurulum
+## Setup
 
-Gerekenler: Node.js (24 LTS ile test edildi), Docker Desktop, bir [Gemini API anahtarı](https://aistudio.google.com/apikey).
+Requirements: Node.js (tested with 24 LTS), Docker Desktop, a [Gemini API key](https://aistudio.google.com/apikey).
 
 ```bash
 git clone https://github.com/YunusEmreInel/API-Pathfinder.git api-pathfinder && cd api-pathfinder
@@ -69,111 +72,111 @@ npm install
 cp .env.example .env.local
 ```
 
-`.env.local` dosyasında `POSTGRES_PASSWORD` değerini değiştir (aynı parolayı `DATABASE_URL` içine de yaz) ve `GEMINI_API_KEY` değerini gir. Bu dosya `.gitignore`'dadır.
+In `.env.local`, change `POSTGRES_PASSWORD` (use the same password inside `DATABASE_URL`) and set `GEMINI_API_KEY`. This file is in `.gitignore`.
 
 ```bash
 npm run db:up        # docker compose --env-file .env.local up -d
-npm run db:logs      # "running /docker-entrypoint-initdb.d/001-init.sql" ve "ready to accept connections" satırlarını gör
+npm run db:logs      # look for "running /docker-entrypoint-initdb.d/001-init.sql" and "ready to accept connections"
 npm run dev          # http://localhost:3000
 ```
 
-Faydalı komutlar:
+Useful commands:
 
 ```bash
-npm test                                                   # 34 birim testi (vitest)
+npm test                                                   # 34 unit tests (vitest)
 npm run typecheck
-npm run db:psql                                            # psql oturumu
-npm run db:reset                                           # veritabanını sil ve boş şemayla yeniden başlat
-node --env-file=.env.local scripts/list-models.mjs         # anahtarının erişebildiği Gemini modelleri
-node --env-file=.env.local scripts/probe-gemini.mjs        # gerçek embedding boyutu + tek bir model çağrısı
-node scripts/screenshot.mjs                                # README ekran görüntülerini arayüzü sürerek yeniden al (Edge gerekir)
-node scripts/render-guide.mjs                              # docs/guide/guide.html → docs/API-Pathfinder-Rehber.pdf (Edge gerekir)
+npm run db:psql                                            # psql session
+npm run db:reset                                           # drop the database and restart with an empty schema
+node --env-file=.env.local scripts/list-models.mjs         # Gemini models your key can access
+node --env-file=.env.local scripts/probe-gemini.mjs        # real embedding size + a single model call
+node scripts/screenshot.mjs                                # retake README screenshots by driving the UI (requires Edge)
+node scripts/render-guide.mjs                              # docs/guide/guide.html → docs/API-Pathfinder-Rehber.pdf (requires Edge)
 ```
 
-Anahtar yoksa içe aktarma ve manuel deneme yine çalışır. Arama ve inceleme ise sahte cevap üretmek yerine açık bir `503` hatası döndürür.
+Without an API key, importing and manual tries still work. Search and review return an explicit `503` error instead of producing fake answers.
 
-## Demo senaryoları
+## Demo scenarios
 
-Örnek doküman: [`demo/store-openapi.json`](demo/store-openapi.json). Arayüzde **Demo dokümanı yükle → İçe aktar** ile yüklenir.
+Sample document: [`demo/store-openapi.json`](demo/store-openapi.json). Load it in the UI with **"Demo dokümanı yükle" (Load demo document) → "İçe aktar" (Import)**.
 
-**1. “Satışta olan ürünleri listele”** → **İncele (Agent + araçlar)**
-Model `search_endpoints` ve ardından `inspect_endpoint(listProducts)` çağırır, sonra `listProducts` + `status=on_sale` önerir. Kod doğrulaması *hazır — gönderilmedi* der. **Bu işlemi incele ve dene → İsteği dene** adımlarından sonra `GET http://localhost:3000/demo-api/products?status=on_sale` → `200` ve 8 ürün döner.
+**1. "Satışta olan ürünleri listele" (List the products on sale)** → **"İncele (Agent + araçlar)" (Review with agent + tools)**
+The model calls `search_endpoints` and then `inspect_endpoint(listProducts)`, then proposes `listProducts` + `status=on_sale`. Code validation reports *ready — not sent*. After **"Bu işlemi incele ve dene" (Inspect and try this operation) → "İsteği dene" (Try the request)**, `GET http://localhost:3000/demo-api/products?status=on_sale` returns `200` and 8 products.
 
-**2. “17 numaralı ürünü getir”**, ardından hata durumu
-`getProductById` + `id=17` → `GET …/products/17` → `200`. Aynı formda `id` alanını boşaltırsan istek **gönderilmez** (“Eksik zorunlu parametre: id”). `999` yazarsan `404` döner ve kırmızı kutuda “API returned an error. This is NOT a successful result.” mesajı çıkar.
+**2. "17 numaralı ürünü getir" (Get product number 17)**, then an error case
+`getProductById` + `id=17` → `GET …/products/17` → `200`. If you clear the `id` field in the same form, the request is **not sent** ("Eksik zorunlu parametre: id" — missing required parameter: id). If you enter `999`, it returns `404` and a red box shows "API returned an error. This is NOT a successful result."
 
-**3. “Müşteri yorumlarını listele”** (dokümanda karşılığı yok)
-**Ham arama** yine en yakın 4 işlemi getirir; en üstte 0.643 benzerlikle `listOrders` vardır. Bu, doğru eşleşme olan “17 numaralı ürün → getProductById” aramasının puanından (0.622) **yüksektir**. Yani sabit bir benzerlik eşiği doğruyu yanlıştan ayıramaz. RAG ve Agent modlarında model uygun işlem bulunmadığını söyler ve `operation_id: null` döndürür; Pathfinder endpoint uydurmaz.
+**3. "Müşteri yorumlarını listele" (List customer reviews)** (no matching operation in the document)
+**Raw search** still returns the 4 closest operations; the top one is `listOrders` with a similarity of 0.643. That is **higher** than the score of the correct match in the "product number 17 → getProductById" search (0.622). In other words, a fixed similarity threshold cannot separate right from wrong. In RAG and Agent modes, the model says there is no suitable operation and returns `operation_id: null`; Pathfinder does not invent endpoints.
 
-![Ham pgvector sonuçları: en yakın sonuç doğru sonuç değildir](docs/screenshot-raw-search.png)
+![Raw pgvector results: the closest result is not the correct one](docs/screenshot-raw-search.png)
 
-## Doğrulanan “bitti” ölçütleri
+## Verified "done" criteria
 
-Hepsi yerelde, gerçek Gemini API'siyle ve demo API'siyle çalıştırıldı:
+All were run locally against the real Gemini API and the demo API:
 
-| # | Ölçüt | Sonuç |
+| # | Criterion | Result |
 |---|---|---|
-| 1 | “Satışta olan ürünleri listele” → `GET /products`, `status` ile gerçek istek | ✅ `…/products?status=on_sale` → 200, 8 ürün |
-| 2 | “17 numaralı ürünü getir” → `id` path'e yerleşir | ✅ `…/products/17` → 200 |
-| 3 | Eksik zorunlu parametrede dış çağrı yok | ✅ `needs_input`, `try_runs.url` boş; birim testi `safeGet`'in çağrılmadığını doğrular |
-| 4 | Dokümanda olmayan işlem uydurulmaz | ✅ “Müşteri yorumları” → `no_match`; uydurulan `operationId` → `invalid_suggestion` (test) |
-| 5 | API hatası başarı gibi gösterilmez | ✅ `id=999` → 404, kırmızı kutu, “NOT a successful result” |
-| 6 | Gerçek Gemini araç çağrısı + sunucuda çalışan sonuç görünür | ✅ Arayüzdeki araç izi tablosu ve `investigations.trace` (JSONB) |
-| + | Model araç çağırmazsa dürüst sonuç | ✅ “Merhaba, nasılsın?” → 1 model turu, 0 araç adımı, `no_match` |
+| 1 | "List the products on sale" → real request to `GET /products` with `status` | ✅ `…/products?status=on_sale` → 200, 8 products |
+| 2 | "Get product number 17" → `id` placed in the path | ✅ `…/products/17` → 200 |
+| 3 | No outbound call when a required parameter is missing | ✅ `needs_input`, `try_runs.url` empty; a unit test verifies `safeGet` is not called |
+| 4 | Operations not in the document are never invented | ✅ "Customer reviews" → `no_match`; an invented `operationId` → `invalid_suggestion` (test) |
+| 5 | API errors are not shown as success | ✅ `id=999` → 404, red box, "NOT a successful result" |
+| 6 | A real Gemini tool call + the server-side result are visible | ✅ Tool trace table in the UI and `investigations.trace` (JSONB) |
+| + | Honest result when the model calls no tool | ✅ "Merhaba, nasılsın?" (Hi, how are you?) → 1 model turn, 0 tool steps, `no_match` |
 
-## Güvenlik kararları
+## Security decisions
 
-- **URL dışarıdan alınmaz.** İstemci ve model yalnızca `operationId` ve parametre değerleri verir. URL, dokümandaki `servers[0].url` + işlemin path'i + doğrulanmış parametrelerle kurulur (tip, enum, uzunluk kontrolü; path değerleri `encodeURIComponent` ile kodlanır; `.`/`..` reddedilir; dokümanda tanımsız parametre reddedilir).
-- **Origin izin listesi** (`ALLOWED_API_ORIGINS`, varsayılan `http://localhost:3000`) tam eşleşme ister. `169.254.169.254` gibi iç adresler listede olmadıkça çağrılamaz; bu durum içe aktarma sırasında uyarı olarak da gösterilir.
-- **Yönlendirme takip edilmez** (`redirect: "manual"`), **timeout** 5 sn, **yanıt boyutu** 64 KB ile sınırlıdır.
-- **Model istek gönderemez.** `try_get_request` işlevi vardır, ama modele araç olarak tanımlanmaz; yalnızca kullanıcı “İsteği dene” düğmesine bastığında `/api/try` üzerinden çalışır. Model bu aracı adıyla çağırmaya çalışırsa çağrı reddedilir ve izde görünür. (Alternatif tasarım, modelin bu aracı *önerip* uygulamanın onay beklemesi olurdu; burada daha basit ve daha güvenli olan “model hiç göremez” seçildi.)
-- **Güvenilmeyen veri:** hedef, OpenAPI açıklamaları ve API yanıtları modele `<untrusted_data>` içinde veri olarak verilir. Asıl koruma modelin uyması değil, yukarıdaki kod katmanlarıdır.
-- **Sırlar:** `.env.local` git dışındadır. Veritabanı yalnızca `127.0.0.1:5433`'e açılır. Tüm SQL sorguları parametrelidir (`$1, $2…`).
-- Kimlik doğrulama isteyen işlemler (`security`) ve POST/PUT/PATCH/DELETE çalıştırılmaz.
+- **The URL never comes from outside.** The client and the model only provide an `operationId` and parameter values. The URL is built from the document's `servers[0].url` + the operation's path + validated parameters (type, enum and length checks; path values encoded with `encodeURIComponent`; `.`/`..` rejected; parameters not defined in the document rejected).
+- **Origin allowlist** (`ALLOWED_API_ORIGINS`, default `http://localhost:3000`) requires an exact match. Internal addresses such as `169.254.169.254` cannot be called unless allowlisted; this is also shown as a warning at import time.
+- **Redirects are not followed** (`redirect: "manual"`), the **timeout** is 5 s, and the **response size** is limited to 64 KB.
+- **The model cannot send requests.** The `try_get_request` function exists, but it is not exposed to the model as a tool; it only runs through `/api/try` when the user clicks "İsteği dene" (Try the request). If the model tries to call it by name, the call is rejected and shows up in the trace. (An alternative design would let the model *propose* this tool and have the app wait for confirmation; the simpler and safer "the model never sees it" was chosen here.)
+- **Untrusted data:** the goal, OpenAPI descriptions and API responses are given to the model as data inside `<untrusted_data>`. The real protection is the code layers above, not the model's compliance.
+- **Secrets:** `.env.local` is outside git. The database is only exposed on `127.0.0.1:5433`. All SQL queries are parameterized (`$1, $2…`).
+- Operations that require authentication (`security`) and POST/PUT/PATCH/DELETE are never executed.
 
-## Sorun giderme
+## Troubleshooting
 
-- **PowerShell'de `npm.ps1 cannot be loaded`**: komutu `npm.cmd run dev` şeklinde çalıştır ya da Komut İstemi (cmd) kullan.
-- **`ECONNREFUSED` / “Is the database running?”**: Docker Desktop açık mı? `npm run db:up`, sonra `docker ps` ile `pathfinder-db` konteynerini gör.
-- **`429 … quota exceeded`**: Gemini ücretsiz kotası doldu. Bir süre bekle ya da `.env.local` içinde `GEMINI_MODEL` değerini değiştirip `npm run dev`'i yeniden başlat.
-- **`.env.local` değişikliği etkisiz**: Next.js ortam değişkenlerini yalnızca açılışta okur; sunucuyu yeniden başlat.
-- **Port 3000 dolu**: başka bir `npm run dev` açık kalmış olabilir; o terminali kapat.
+- **`npm.ps1 cannot be loaded` in PowerShell**: run `npm.cmd run dev` instead, or use Command Prompt (cmd).
+- **`ECONNREFUSED` / "Is the database running?"**: is Docker Desktop running? Run `npm run db:up`, then check for the `pathfinder-db` container with `docker ps`.
+- **`429 … quota exceeded`**: the free Gemini quota is used up. Wait a while, or change `GEMINI_MODEL` in `.env.local` and restart `npm run dev`.
+- **`.env.local` changes have no effect**: Next.js reads environment variables only at startup; restart the server.
+- **Port 3000 is busy**: another `npm run dev` may still be running; close that terminal.
 
-## Bilinen sınırlar
+## Known limitations
 
-- Yalnızca **JSON** biçiminde **OpenAPI 3.x** (YAML ve Swagger 2.0 desteklenmez).
-- Yalnızca **GET**; yalnızca `path` ve `query` parametreleri; yalnızca `string | integer | number | boolean` (+ `enum`) şemaları. `header`/`cookie` parametreleri, dizi/nesne parametreleri, `content` ile tanımlı parametreler ve varsayılan dışı `style`'lar “desteklenmez” olarak işaretlenir. Bu parametre zorunluysa işlem çalıştırılamaz.
-- Yalnızca yerel `$ref` (`#/…`); uzak `$ref` indirilmez, açık bir hatayla reddedilir. Sunucu URL değişkenleri (`{region}`) desteklenmez.
-- Kimlik doğrulamalı API'ler çalıştırılmaz.
-- Benzerlik puanları kalibre edilmemiştir; “uygun değil” kararını model ve kod doğrulaması verir, bir eşik değeri değil.
-- Ücretsiz Gemini katmanında günlük istek kotası düşüktür. Bir agent incelemesi 2–3 model çağrısı yapar. Bu yüzden varsayılan model `gemini-3.5-flash-lite`'tır; kota aşılırsa arayüz `429` hatasını açıkça gösterir.
-- Tek kullanıcılı yerel prototip: kimlik doğrulama, çoklu kullanıcı veya dağıtım yapılandırması yoktur.
+- Only **OpenAPI 3.x** in **JSON** (YAML and Swagger 2.0 are not supported).
+- Only **GET**; only `path` and `query` parameters; only `string | integer | number | boolean` (+ `enum`) schemas. `header`/`cookie` parameters, array/object parameters, parameters defined with `content`, and non-default `style`s are marked "unsupported". If such a parameter is required, the operation cannot be run.
+- Only local `$ref` (`#/…`); remote `$ref`s are not downloaded and are rejected with a clear error. Server URL variables (`{region}`) are not supported.
+- APIs that require authentication are not executed.
+- Similarity scores are not calibrated; the "no suitable operation" decision is made by the model and code validation, not by a threshold.
+- The free Gemini tier has a low daily request quota, and one agent review makes 2–3 model calls. That is why the default model is `gemini-3.5-flash-lite`; if the quota is exceeded, the UI shows the `429` error clearly.
+- A single-user local prototype: no authentication, multi-user support or deployment configuration.
 
-## Sonraki geliştirmeler
+## Next steps
 
-- Herkese açık, kimlik doğrulamasız gerçek bir API'yi (izin listesine eklenerek) desteklemek ve belgelemek.
-- YAML girişi, dizi tipindeki query parametreleri (`style: form, explode`), header parametreleri.
-- Yanıtın dokümandaki şemaya uyup uymadığını kontrol etmek (şimdilik yalnızca durum kodu ve ham JSON gösteriliyor).
-- Küçük bir değerlendirme seti: hedef → beklenen `operationId`, RAG ve Agent modlarının isabet oranını ölçmek.
-- Eski dokümanları silme ve aynı dokümanı yeniden içe aktarınca tekrar kaydı engelleme.
+- Support and document a real public, unauthenticated API (by adding it to the allowlist).
+- YAML input, array-type query parameters (`style: form, explode`), header parameters.
+- Check whether the response matches the schema in the document (currently only the status code and raw JSON are shown).
+- A small evaluation set: goal → expected `operationId`, to measure the hit rate of RAG and Agent modes.
+- Deleting old documents and preventing duplicate records when the same document is imported again.
 
-## Proje yapısı
+## Project structure
 
 ```
-src/app/page.tsx                  arayüz (tek sayfa)
-src/app/demo-api/**               örnek mağaza API'si (gerçek HTTP yanıtları)
+src/app/page.tsx                  UI (single page)
+src/app/demo-api/**               sample store API (real HTTP responses)
 src/app/api/{import,documents,operations,embed,search,investigate,try}/route.ts
-src/lib/openapi.ts                OpenAPI ayrıştırma, yerel $ref, desteklenmeyen yapıların raporu
-src/lib/request-builder.ts        URL oluşturma + parametre doğrulama + fetch örneği
-src/lib/safe-fetch.ts             izin listesi, timeout, boyut sınırı, redirect yok
-src/lib/try-request.ts            onaylı denemenin tek kod yolu
-src/lib/db.ts                     pg havuzu, parametreli sorgular, pgvector araması
-src/lib/gemini.ts                 SDK istemcisi, embedding
-src/lib/search.ts, rag.ts         semantik arama, RAG
-src/lib/tools.ts, agent.ts        araç kaydı, sınırlı function-calling döngüsü
-src/lib/proposal.ts               model önerisinin kodla doğrulanması
-db/init.sql, docker-compose.yml   şema, PostgreSQL + pgvector
-tests/                            vitest: ayrıştırma, URL, izin listesi, eksik parametre, öneri doğrulama, agent döngüsü
+src/lib/openapi.ts                OpenAPI parsing, local $ref, report of unsupported constructs
+src/lib/request-builder.ts        URL building + parameter validation + fetch example
+src/lib/safe-fetch.ts             allowlist, timeout, size limit, no redirects
+src/lib/try-request.ts            the single code path for confirmed tries
+src/lib/db.ts                     pg pool, parameterized queries, pgvector search
+src/lib/gemini.ts                 SDK client, embeddings
+src/lib/search.ts, rag.ts         semantic search, RAG
+src/lib/tools.ts, agent.ts        tool registry, bounded function-calling loop
+src/lib/proposal.ts               validating the model's proposal in code
+db/init.sql, docker-compose.yml   schema, PostgreSQL + pgvector
+tests/                            vitest: parsing, URL, allowlist, missing parameters, proposal validation, agent loop
 ```
 
-Bağımlılıklar bilinçli olarak az tutuldu: `next`, `react`, `pg` (PostgreSQL sürücüsü; pgvector değerleri metin literal'i olarak gönderilir, ek paket yok), `@google/genai` (resmî Gemini SDK). Geliştirme bağımlılıkları: `typescript`, `vitest`, `playwright-core` (yalnızca README ekran görüntüleri için, yerel Edge'i kullanır).
+Dependencies are intentionally few: `next`, `react`, `pg` (PostgreSQL driver; pgvector values are sent as text literals, no extra package), `@google/genai` (official Gemini SDK). Dev dependencies: `typescript`, `vitest`, `playwright-core` (only for README screenshots; uses the local Edge).
